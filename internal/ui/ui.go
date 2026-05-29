@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	tigoRoot string
-	tasks    []*task.Task
-	selected int = 0
+	tigoRoot   string
+	tasks      []*task.Task
+	selected   int  = 0
+	showClosed bool = false
 )
 
 type keybinding struct {
@@ -66,6 +67,9 @@ func loadTasks() error {
 	for _, id := range taskIDs {
 		t, err := task.Parse(id, filepath.Join(tigoRoot, id, "TASK.md"))
 		if err == nil {
+			if !showClosed && t.Status == "CLOSED" {
+				continue
+			}
 			tasks = append(tasks, t)
 		}
 	}
@@ -74,6 +78,16 @@ func loadTasks() error {
 
 func layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
+
+	frameRunes := []rune{'─', '│', '╭', '╮', '╰', '╯'}
+	for _, view := range g.Views() {
+		view.FrameRunes = frameRunes
+		view.SelBgColor = gocui.ColorCyan
+		view.FrameColor = gocui.ColorWhite
+	}
+	if currentView := g.CurrentView(); currentView != nil {
+		currentView.FrameColor = gocui.ColorGreen
+	}
 
 	if v, err := g.SetView("list", 0, 0, maxX/3-1, maxY-2, 0); err != nil {
 		if err != gocui.ErrUnknownView {
@@ -102,16 +116,8 @@ func layout(g *gocui.Gui) error {
 		v.Frame = false
 		v.BgColor = gocui.ColorCyan
 		v.FgColor = gocui.ColorBlack
-		fmt.Fprintf(v, " q/Ctrl+C: Quit | n: New | d: Delete | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom ")
+		fmt.Fprintf(v, " q/Ctrl+C: Quit | n: New | d: Delete | H: Hide/Show CLOSED | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom ")
 	}
-
-	frameRunes := []rune{'─', '│', '╭', '╮', '╰', '╯'}
-	for _, view := range g.Views() {
-		view.FrameRunes = frameRunes
-		view.SelBgColor = gocui.ColorCyan
-		view.FrameColor = gocui.ColorWhite
-	}
-	g.CurrentView().FrameColor = gocui.ColorGreen
 
 	return updateViews(g)
 }
@@ -133,6 +139,9 @@ func updateViews(g *gocui.Gui) error {
 	for _, t := range tasks {
 		text := fmt.Sprintf(" [%s] %s", t.Status, t.Title)
 		pad := strings.Repeat(" ", max(0, listWidth-len(text)))
+		if t.Status == "CLOSED" {
+			text = fmt.Sprintf("\x1b[32m%s\x1b[0m", text)
+		}
 		fmt.Fprintf(listView, "%s%s\n", text, pad)
 	}
 	if selected < oy+3 {
@@ -175,6 +184,7 @@ func initKeybindings(g *gocui.Gui) error {
 		{"list", 'd', gocui.ModNone, promptDeleteTask},
 		{"list", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = 0; return updateViews(g) }},
 		{"list", 'G', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = len(tasks) - 1; return updateViews(g) }},
+		{"list", 'H', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { showClosed = !showClosed; return loadTasks() }},
 	}
 
 	for _, b := range bindings {
