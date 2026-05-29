@@ -15,7 +15,7 @@ import (
 var (
 	tigoRoot string
 	tasks    []*task.Task
-	selected int
+	selected int = 0
 )
 
 type keybinding struct {
@@ -69,7 +69,6 @@ func loadTasks() error {
 			tasks = append(tasks, t)
 		}
 	}
-	selected = 0
 	return nil
 }
 
@@ -81,6 +80,8 @@ func layout(g *gocui.Gui) error {
 			return err
 		}
 		v.Title = "Tasks"
+		v.FgColor = gocui.ColorWhite
+		v.Highlight = true
 		if _, err := g.SetCurrentView("list"); err != nil {
 			return err
 		}
@@ -101,43 +102,62 @@ func layout(g *gocui.Gui) error {
 		v.Frame = false
 		v.BgColor = gocui.ColorCyan
 		v.FgColor = gocui.ColorBlack
-		fmt.Fprintf(v, " q/Ctrl+C: Quit | n: New | d: Delete | \u2191/\u2193 j/k: Navigate ")
+		fmt.Fprintf(v, " q/Ctrl+C: Quit | n: New | d: Delete | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom ")
 	}
+
+	frameRunes := []rune{'─', '│', '╭', '╮', '╰', '╯'}
+	for _, view := range g.Views() {
+		view.FrameRunes = frameRunes
+		view.SelBgColor = gocui.ColorCyan
+		view.FrameColor = gocui.ColorWhite
+	}
+	g.CurrentView().FrameColor = gocui.ColorGreen
 
 	return updateViews(g)
 }
 
 func updateViews(g *gocui.Gui) error {
-	lv, err := g.View("list")
+	listView, err := g.View("list")
 	if err != nil {
 		return err
 	}
 
-	dv, err := g.View("details")
+	detailsView, err := g.View("details")
 	if err != nil {
 		return err
 	}
 
-	lv.Clear()
-	for i, t := range tasks {
-		var color string
-		if i == selected {
-			color = "\x1b[44m"
-		}
-		fmt.Fprintf(lv, " %s[%s] %s\x1b[0m\n", color, t.Status, t.Title)
+	ox, oy := listView.Origin()
+	listWidth, listHeight := listView.Size()
+	listView.Clear()
+	for _, t := range tasks {
+		text := fmt.Sprintf(" [%s] %s", t.Status, t.Title)
+		pad := strings.Repeat(" ", max(0, listWidth-len(text)))
+		fmt.Fprintf(listView, "%s%s\n", text, pad)
 	}
+	if selected < oy+3 {
+		oy = selected - 3
+	}
+	if selected > oy+listHeight-3 {
+		oy = selected - listHeight + 3
+	}
+	if oy < 0 {
+		oy = 0
+	}
+	listView.SetOrigin(ox, oy)
+	listView.SetCursor(0, selected-oy)
 
-	dv.Clear()
+	detailsView.Clear()
 	if len(tasks) > 0 && selected >= 0 && selected < len(tasks) {
 		t := tasks[selected]
-		fmt.Fprintf(dv, "ID: %s\n", t.ID)
-		fmt.Fprintf(dv, "Title: %s\n", t.Title)
-		fmt.Fprintf(dv, "Status: %s\n", t.Status)
-		fmt.Fprintf(dv, "Priority: %d\n", t.Priority)
-		fmt.Fprintf(dv, "Tags: %v\n", t.Tags)
-		fmt.Fprintf(dv, "\nDescription:\n%s\n", t.Description)
+		fmt.Fprintf(detailsView, "ID: %s\n", t.ID)
+		fmt.Fprintf(detailsView, "Title: %s\n", t.Title)
+		fmt.Fprintf(detailsView, "Status: %s\n", t.Status)
+		fmt.Fprintf(detailsView, "Priority: %d\n", t.Priority)
+		fmt.Fprintf(detailsView, "Tags: %v\n", t.Tags)
+		fmt.Fprintf(detailsView, "\nDescription:\n%s\n", t.Description)
 	} else {
-		fmt.Fprintln(dv, "No task selected.")
+		fmt.Fprintln(detailsView, "No task selected.")
 	}
 
 	return nil
@@ -153,6 +173,8 @@ func initKeybindings(g *gocui.Gui) error {
 		{"list", 'k', gocui.ModNone, cursorUp},
 		{"list", 'n', gocui.ModNone, promptCreateTask},
 		{"list", 'd', gocui.ModNone, promptDeleteTask},
+		{"list", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = 0; return updateViews(g) }},
+		{"list", 'G', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = len(tasks) - 1; return updateViews(g) }},
 	}
 
 	for _, b := range bindings {
@@ -177,6 +199,7 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 		v.Title = " New Task Title "
 		v.Editable = true
 		v.Wrap = true
+		g.Cursor = true
 
 		if _, err := g.SetCurrentView("createDialog"); err != nil {
 			return err
@@ -191,6 +214,7 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 
 func submitCreateTask(g *gocui.Gui, v *gocui.View) error {
 	title := strings.TrimSpace(v.Buffer())
+	g.Cursor = false
 
 	// Create task
 	_, err := db.CreateTaskDirectory(tigoRoot, title)
@@ -210,6 +234,8 @@ func submitCreateTask(g *gocui.Gui, v *gocui.View) error {
 	if err := loadTasks(); err != nil {
 		return err
 	}
+
+	selected = len(tasks) - 1
 	return updateViews(g)
 }
 
@@ -269,6 +295,7 @@ func submitDeleteTask(g *gocui.Gui, v *gocui.View) error {
 func cancelDialog(g *gocui.Gui, v *gocui.View) error {
 	g.DeleteView(v.Name())
 	g.DeleteKeybindings(v.Name())
+	g.Cursor = false
 
 	if _, err := g.SetCurrentView("list"); err != nil {
 		return err
