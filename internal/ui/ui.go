@@ -10,6 +10,7 @@ import (
 	"tigo/pkg/task"
 
 	"github.com/awesome-gocui/gocui"
+	"golang.design/x/clipboard"
 )
 
 var (
@@ -20,8 +21,8 @@ var (
 )
 
 type keybinding struct {
-	view    string
-	key     any // gocui.Key or rune
+	view    string // empty string means global
+	key     any    // gocui.Key or rune
 	mod     gocui.Modifier
 	handler func(*gocui.Gui, *gocui.View) error
 }
@@ -108,6 +109,7 @@ func layout(g *gocui.Gui) error {
 		}
 		v.Title = "Details"
 		v.Wrap = true
+		v.Highlight = true
 	}
 
 	if v, err := g.SetView("help", -1, maxY-2, maxX, maxY, 0); err != nil {
@@ -161,6 +163,7 @@ func updateViews(g *gocui.Gui) error {
 	listView.SetCursor(0, selected-oy)
 
 	// details view
+	cx, cy := detailsView.Cursor()
 	detailsView.Clear()
 	if len(tasks) > 0 && selected >= 0 && selected < len(tasks) {
 		t := tasks[selected]
@@ -172,6 +175,12 @@ func updateViews(g *gocui.Gui) error {
 		fmt.Fprintf(detailsView, "\nDescription:\n%s\n", t.Description)
 	} else {
 		fmt.Fprintln(detailsView, "No task selected.")
+	}
+	if g.CurrentView() != detailsView {
+		x, y := detailsView.Size()
+		detailsView.SetCursor(x, y)
+	} else {
+		detailsView.SetCursor(cx, cy)
 	}
 
 	// help view
@@ -192,7 +201,7 @@ func updateViews(g *gocui.Gui) error {
 	} else {
 		hKeyText = "Show"
 	}
-	helpText := fmt.Sprintf(" q: Quit | n: New | d: Delete %s| H: %s CLOSED | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom ", spaceKeyText, hKeyText)
+	helpText := fmt.Sprintf(" q: Quit | n: New | d: Delete %s| H: %s CLOSED | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom | y: Yank", spaceKeyText, hKeyText)
 	if helpText != helpView.Buffer() {
 		helpView.Clear()
 		fmt.Fprint(helpView, helpText)
@@ -205,6 +214,16 @@ func initKeybindings(g *gocui.Gui) error {
 	bindings := []keybinding{
 		{"", gocui.KeyCtrlC, gocui.ModNone, quit},
 		{"", 'q', gocui.ModNone, quit},
+		{"details", 'y', gocui.ModNone, copyLine},
+		{"details", gocui.KeyTab, gocui.ModNone, SetCurrentViewCallback("list")},
+		{"details", 'h', gocui.ModNone, SetCurrentViewCallback("list")},
+		{"details", gocui.KeyArrowDown, gocui.ModNone, detailsDown},
+		{"details", 'j', gocui.ModNone, detailsDown},
+		{"details", gocui.KeyArrowUp, gocui.ModNone, detailsUp},
+		{"details", 'k', gocui.ModNone, detailsUp},
+		{"list", 'y', gocui.ModNone, copyLine},
+		{"list", gocui.KeyTab, gocui.ModNone, showDetails},
+		{"list", 'l', gocui.ModNone, showDetails},
 		{"list", gocui.KeyArrowDown, gocui.ModNone, cursorDown},
 		{"list", 'j', gocui.ModNone, cursorDown},
 		{"list", gocui.KeyArrowUp, gocui.ModNone, cursorUp},
@@ -217,9 +236,9 @@ func initKeybindings(g *gocui.Gui) error {
 		{"list", 'H', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { showClosed = !showClosed; return loadTasks() }},
 	}
 
-	for _, b := range bindings {
-		if err := g.SetKeybinding(b.view, b.key, b.mod, b.handler); err != nil {
-			return fmt.Errorf("bind %v to view %q: %w", b.key, b.view, err)
+	for _, binding := range bindings {
+		if err := g.SetKeybinding(binding.view, binding.key, binding.mod, binding.handler); err != nil {
+			return fmt.Errorf("bind %v to view %q: %w", binding.key, binding.view, err)
 		}
 	}
 	return nil
@@ -483,6 +502,48 @@ func cursorUp(g *gocui.Gui, v *gocui.View) error {
 		selected--
 	}
 	return updateViews(g)
+}
+
+func showDetails(g *gocui.Gui, v *gocui.View) error {
+	detailsView, err := g.SetCurrentView("details")
+	if err != nil {
+		return err
+	}
+	return detailsView.SetCursor(0, 0)
+}
+
+func detailsDown(g *gocui.Gui, v *gocui.View) error {
+	cx, cy := v.Cursor()
+	y := v.LinesHeight()
+	if cy < y-1 {
+		return v.SetCursor(cx, cy+1)
+	}
+	return nil
+}
+
+func detailsUp(g *gocui.Gui, v *gocui.View) error {
+	cx, cy := v.Cursor()
+	if cy > 0 {
+		return v.SetCursor(cx, cy-1)
+	}
+	return nil
+}
+
+func copyLine(g *gocui.Gui, v *gocui.View) error {
+	_, cy := v.Cursor()
+	line, err := v.Line(cy)
+	if err != nil {
+		return err
+	}
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return nil
+	}
+	if err := clipboard.Init(); err != nil {
+		return err
+	}
+	clipboard.Write(clipboard.FmtText, []byte(line))
+	return nil
 }
 
 func SetCurrentViewCallback(name string) func(*gocui.Gui, *gocui.View) error {

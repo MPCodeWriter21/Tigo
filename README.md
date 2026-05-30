@@ -47,6 +47,7 @@ use $HOME/.local/share/tigo.
 - j / ArrowDown: Cursor down in the task list
 - k / ArrowUp: Cursor up in the task list
 - g / G: Jump to the top/bottom of the task list
+- y: Yank (copy) the selected task's content to the clipboard
 - Enter: Submit dialogs
 - Esc: Cancel dialogs
 
