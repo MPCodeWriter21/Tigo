@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"tigo/pkg/task"
 	"time"
 )
@@ -63,9 +62,14 @@ func CreateNewTask(root, title string, priority int, tags []string, description 
 
 		taskMDPath := filepath.Join(taskDir, "TASK.md")
 
-		content := fmt.Sprintf("# %s\n\n- STATUS: OPEN\n- PRIORITY: %d\n- TAGS: %s\n\n%s", title, priority, strings.Join(tags, ", "), description)
-		err = os.WriteFile(taskMDPath, []byte(content), 0644)
-		if err != nil {
+		if err := task.Serialize(&task.Task{
+			ID:          id,
+			Title:       title,
+			Status:      "OPEN",
+			Priority:    priority,
+			Tags:        tags,
+			Description: description,
+		}, taskMDPath); err != nil {
 			return "", err
 		}
 
