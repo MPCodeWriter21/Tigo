@@ -72,6 +72,7 @@ func loadTasks() error {
 			tasks = append(tasks, t)
 		}
 	}
+	selected = min(selected, len(tasks)-1)
 	return nil
 }
 
@@ -115,7 +116,6 @@ func layout(g *gocui.Gui) error {
 		v.Frame = false
 		v.BgColor = gocui.ColorCyan
 		v.FgColor = gocui.ColorBlack
-		fmt.Fprintf(v, " q: Quit | n: New | d: Delete | Space: Toggle State | H: Hide/Show CLOSED | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom ")
 	}
 
 	return updateViews(g)
@@ -126,12 +126,16 @@ func updateViews(g *gocui.Gui) error {
 	if err != nil {
 		return err
 	}
-
 	detailsView, err := g.View("details")
 	if err != nil {
 		return err
 	}
+	helpView, err := g.View("help")
+	if err != nil {
+		return err
+	}
 
+	// list view
 	ox, oy := listView.Origin()
 	listWidth, listHeight := listView.Size()
 	listView.Clear()
@@ -155,6 +159,7 @@ func updateViews(g *gocui.Gui) error {
 	listView.SetOrigin(ox, oy)
 	listView.SetCursor(0, selected-oy)
 
+	// details view
 	detailsView.Clear()
 	if len(tasks) > 0 && selected >= 0 && selected < len(tasks) {
 		t := tasks[selected]
@@ -166,6 +171,30 @@ func updateViews(g *gocui.Gui) error {
 		fmt.Fprintf(detailsView, "\nDescription:\n%s\n", t.Description)
 	} else {
 		fmt.Fprintln(detailsView, "No task selected.")
+	}
+
+	// help view
+	var (
+		spaceKeyText string
+		hKeyText     string
+	)
+	if len(tasks) > 0 && selected >= 0 && selected < len(tasks) {
+		switch tasks[selected].Status {
+		case "CLOSED":
+			spaceKeyText = "| Space: Open "
+		case "OPEN":
+			spaceKeyText = "| Space: Close "
+		}
+	}
+	if showClosed {
+		hKeyText = "Hide"
+	} else {
+		hKeyText = "Show"
+	}
+	helpText := fmt.Sprintf(" q: Quit | n: New | d: Delete %s| H: %s CLOSED | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom ", spaceKeyText, hKeyText)
+	if helpText != helpView.Buffer() {
+		helpView.Clear()
+		fmt.Fprint(helpView, helpText)
 	}
 
 	return nil
