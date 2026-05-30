@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"tigo/pkg/task"
 	"time"
 )
 
@@ -92,4 +93,33 @@ func DiscoverTasks(root string) ([]string, error) {
 	}
 
 	return taskIDs, nil
+}
+
+// DeleteTask removes the task directory and all its contents.
+func DeleteTask(root, id string) error {
+	taskDir := filepath.Join(root, id)
+	if _, err := os.Stat(taskDir); os.IsNotExist(err) {
+		return fmt.Errorf("task with ID %s does not exist", id)
+	}
+
+	return os.RemoveAll(taskDir)
+}
+
+// ToggleStatus switches between OPEN and CLOSED status.
+// If current status is something other than OPEN or CLOSED, it will not change it.
+// Returns the new status.
+func ToggleStatus(root string, t *task.Task) (string, error) {
+	taskMDPath := filepath.Join(root, t.ID, "TASK.md")
+
+	switch t.Status {
+	case "OPEN":
+		t.Status = "CLOSED"
+	case "CLOSED":
+		t.Status = "OPEN"
+	default:
+		return t.Status, fmt.Errorf("unrecognized status: %s", t.Status)
+	}
+
+	// Update the raw lines to reflect the new status
+	return t.Status, task.Serialize(t, taskMDPath)
 }

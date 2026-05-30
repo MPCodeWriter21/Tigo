@@ -22,7 +22,7 @@ type Task struct {
 var (
 	titleRegex    = regexp.MustCompile(`^#\s+(.*)$`)
 	statusRegex   = regexp.MustCompile(`^- STATUS:\s*(.*)$`)
-	priorityRegex = regexp.MustCompile(`^- PRIORITY:\s*(\d+)$`)
+	priorityRegex = regexp.MustCompile(`^- PRIORITY:\s*([0-9]+)$`)
 	tagsRegex     = regexp.MustCompile(`^- TAGS:\s*(.*)$`)
 )
 
@@ -67,8 +67,8 @@ func Parse(id, filePath string) (*Task, error) {
 
 		if tagsRegex.MatchString(line) {
 			tagsStr := tagsRegex.FindStringSubmatch(line)[1]
-			parts := strings.Split(tagsStr, ",")
-			for _, p := range parts {
+			parts := strings.SplitSeq(tagsStr, ",")
+			for p := range parts {
 				tag := strings.TrimSpace(p)
 				if tag != "" {
 					t.Tags = append(t.Tags, tag)
@@ -84,7 +84,8 @@ func Parse(id, filePath string) (*Task, error) {
 
 		// Assume everything else is description
 		metadataDone = true
-		descriptionBuilder.WriteString(line + "\n")
+		descriptionBuilder.WriteString(line)
+		descriptionBuilder.WriteString("\n")
 	}
 
 	t.Description = strings.TrimSpace(descriptionBuilder.String())
@@ -97,10 +98,13 @@ func Parse(id, filePath string) (*Task, error) {
 }
 
 // Serialize writes the Task back into the file, maintaining original structure where possible
-func Serialize(filePath string, t *Task) error {
+func Serialize(t *Task, filePath string) error {
 	var newLines []string
 
-	// Create from scratch if no raw lines (or replace completely for simplicity)
+	// TODO: Replace only the lines that need updating (e.g. status, priority) instead
+	// of rewriting the whole file.
+
+	// Create from scratch
 	newLines = append(newLines, fmt.Sprintf("# %s", t.Title))
 	newLines = append(newLines, "")
 	newLines = append(newLines, fmt.Sprintf("- STATUS: %s", t.Status))
@@ -110,9 +114,11 @@ func Serialize(filePath string, t *Task) error {
 		newLines = append(newLines, fmt.Sprintf("- TAGS: %s", strings.Join(t.Tags, ", ")))
 	}
 
-	newLines = append(newLines, "")
-	newLines = append(newLines, t.Description)
-	newLines = append(newLines, "")
+	if len(t.Description) > 0 {
+		newLines = append(newLines, "")
+		newLines = append(newLines, t.Description)
+		newLines = append(newLines, "")
+	}
 
 	return os.WriteFile(filePath, []byte(strings.Join(newLines, "\n")), 0644)
 }

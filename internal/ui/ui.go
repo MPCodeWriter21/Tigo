@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -116,7 +115,7 @@ func layout(g *gocui.Gui) error {
 		v.Frame = false
 		v.BgColor = gocui.ColorCyan
 		v.FgColor = gocui.ColorBlack
-		fmt.Fprintf(v, " q/Ctrl+C: Quit | n: New | d: Delete | H: Hide/Show CLOSED | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom ")
+		fmt.Fprintf(v, " q: Quit | n: New | d: Delete | Space: Toggle State | H: Hide/Show CLOSED | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom ")
 	}
 
 	return updateViews(g)
@@ -180,6 +179,7 @@ func initKeybindings(g *gocui.Gui) error {
 		{"list", 'j', gocui.ModNone, cursorDown},
 		{"list", gocui.KeyArrowUp, gocui.ModNone, cursorUp},
 		{"list", 'k', gocui.ModNone, cursorUp},
+		{"list", gocui.KeySpace, gocui.ModNone, toggleTaskState},
 		{"list", 'n', gocui.ModNone, promptCreateTask},
 		{"list", 'd', gocui.ModNone, promptDeleteTask},
 		{"list", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = 0; return updateViews(g) }},
@@ -232,11 +232,7 @@ func submitCreateTask(g *gocui.Gui, v *gocui.View) error {
 		return err
 	}
 
-	// Close dialog
-	if err := g.DeleteView("createDialog"); err != nil {
-		return err
-	}
-	if _, err := g.SetCurrentView("list"); err != nil {
+	if err := cancelDialog(g, v); err != nil {
 		return err
 	}
 
@@ -282,10 +278,7 @@ func submitDeleteTask(g *gocui.Gui, v *gocui.View) error {
 	if len(tasks) > 0 && selected < len(tasks) {
 		t := tasks[selected]
 
-		err := os.RemoveAll(filepath.Join(tigoRoot, t.ID))
-		if err != nil {
-			return err
-		}
+		db.DeleteTask(tigoRoot, t.ID)
 
 		if selected > 0 {
 			selected--
@@ -303,10 +296,12 @@ func submitDeleteTask(g *gocui.Gui, v *gocui.View) error {
 }
 
 func cancelDialog(g *gocui.Gui, v *gocui.View) error {
-	g.DeleteView(v.Name())
 	g.DeleteKeybindings(v.Name())
 	g.Cursor = false
 
+	if err := g.DeleteView(v.Name()); err != nil {
+		return err
+	}
 	if _, err := g.SetCurrentView("list"); err != nil {
 		return err
 	}
@@ -315,6 +310,13 @@ func cancelDialog(g *gocui.Gui, v *gocui.View) error {
 
 func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
+}
+
+func toggleTaskState(g *gocui.Gui, v *gocui.View) error {
+	if len(tasks) > 0 && selected < len(tasks) {
+		db.ToggleStatus(tigoRoot, tasks[selected])
+	}
+	return nil
 }
 
 func cursorDown(g *gocui.Gui, v *gocui.View) error {

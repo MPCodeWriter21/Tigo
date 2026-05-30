@@ -52,7 +52,7 @@ With multiple lines.`
 	task.Tags = []string{"backend"}
 	task.Description = "New description."
 
-	err = Serialize(filePath, task)
+	err = Serialize(task, filePath)
 	if err != nil {
 		t.Fatalf("Failed to serialize: %v", err)
 	}
