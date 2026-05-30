@@ -39,13 +39,18 @@ func GenerateID() string {
 
 // CreateTaskDirectory creates a directory and boilerplate TASK.md for a new task.
 func CreateTaskDirectory(root, title string) (string, error) {
+	maxRetries := 50
 	for {
 		id := GenerateID()
 		taskDir := filepath.Join(root, id)
 
 		// check collision
 		if _, err := os.Stat(taskDir); err == nil {
-			time.Sleep(1 * time.Second)
+			time.Sleep(100 * time.Millisecond)
+			maxRetries--
+			if maxRetries <= 0 {
+				return "", fmt.Errorf("failed to generate unique task ID after multiple attempts")
+			}
 			continue
 		}
 
