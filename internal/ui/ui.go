@@ -4,6 +4,7 @@ package ui
 import (
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"tigo/pkg/db"
@@ -13,10 +14,11 @@ import (
 )
 
 var (
-	tigoRoot   string
-	tasks      []*task.Task
-	selected   int  = 0
-	showClosed bool = false
+	tigoRoot    string
+	tasks       []*task.Task
+	selected    int  = 0
+	showClosed  bool = false
+	searchQuery string
 )
 
 type keybinding struct {
@@ -70,6 +72,12 @@ func loadTasks() error {
 			if !showClosed && t.Status == "CLOSED" {
 				continue
 			}
+			if searchQuery != "" {
+				matched, err := regexp.MatchString("(?i)"+searchQuery, t.Title+t.Description+strings.Join(t.Tags, " "))
+				if err != nil || !matched {
+					continue
+				}
+			}
 			tasks = append(tasks, t)
 		}
 	}
@@ -96,7 +104,6 @@ func layout(g *gocui.Gui) error {
 		}
 		v.Title = "Tasks"
 		v.FgColor = gocui.ColorWhite
-		v.Highlight = true
 		if _, err := g.SetCurrentView("list"); err != nil {
 			return err
 		}
@@ -108,7 +115,6 @@ func layout(g *gocui.Gui) error {
 		}
 		v.Title = "Details"
 		v.Wrap = true
-		v.Highlight = true
 	}
 
 	if v, err := g.SetView("help", -1, maxY-2, maxX, maxY, 0); err != nil {
@@ -116,8 +122,8 @@ func layout(g *gocui.Gui) error {
 			return err
 		}
 		v.Frame = false
-		v.BgColor = gocui.ColorCyan
-		v.FgColor = gocui.ColorBlack
+		v.BgColor = gocui.ColorBlack
+		v.FgColor = gocui.ColorBlue
 	}
 
 	return updateViews(g)
@@ -141,44 +147,59 @@ func updateViews(g *gocui.Gui) error {
 	ox, oy := listView.Origin()
 	listWidth, listHeight := listView.Size()
 	listView.Clear()
-	for _, t := range tasks {
-		text := fmt.Sprintf(" [%s] %s", t.Status, t.Title)
-		pad := strings.Repeat(" ", max(0, listWidth-len(text)))
-		if t.Status == "CLOSED" {
-			text = fmt.Sprintf("\x1b[32m%s\x1b[0m", text)
+	if len(tasks) > 0 {
+		listView.Highlight = true
+		for _, t := range tasks {
+			text := fmt.Sprintf(" [%s] %s", t.Status, t.Title)
+			pad := strings.Repeat(" ", max(0, listWidth-len(text)))
+			if t.Status == "CLOSED" {
+				text = fmt.Sprintf("\x1b[32m%s\x1b[0m", text)
+			} else if t.Status != "OPEN" {
+				text = fmt.Sprintf("\x1b[35m%s\x1b[0m", text)
+			}
+			searchedFprintf(listView, "%s%s\n", text, pad)
 		}
-		fmt.Fprintf(listView, "%s%s\n", text, pad)
+		if selected < oy+3 {
+			oy = selected - 3
+		}
+		if selected > oy+listHeight-3 {
+			oy = selected - listHeight + 3
+		}
+		if oy < 0 {
+			oy = 0
+		}
+		listView.SetOrigin(ox, oy)
+		listView.SetCursor(0, selected-oy)
+	} else {
+		listView.Highlight = false
+		fmt.Fprintln(listView, "\x1b[31mNo tasks found.\x1b[0m")
+		if searchQuery != "" {
+			fmt.Fprintf(listView, "Search query: \x1b[32m\"%s\"\x1b[0m\n", searchQuery)
+		}
+		fmt.Fprintf(listView, "Directory: \x1b[32m\"%s\"\x1b[0m\n", tigoRoot)
+		fmt.Fprintln(listView, "\n\x1b[34mPress 'n' to create a new task.\x1b[0m")
 	}
-	if selected < oy+3 {
-		oy = selected - 3
-	}
-	if selected > oy+listHeight-3 {
-		oy = selected - listHeight + 3
-	}
-	if oy < 0 {
-		oy = 0
-	}
-	listView.SetOrigin(ox, oy)
-	listView.SetCursor(0, selected-oy)
 
 	// details view
 	cx, cy := detailsView.Cursor()
 	detailsView.Clear()
 	if len(tasks) > 0 && selected >= 0 && selected < len(tasks) {
+		detailsView.FgColor = gocui.ColorWhite
 		t := tasks[selected]
-		fmt.Fprintf(detailsView, "ID: %s\n", t.ID)
-		fmt.Fprintf(detailsView, "Title: %s\n", t.Title)
-		fmt.Fprintf(detailsView, "Status: %s\n", t.Status)
-		fmt.Fprintf(detailsView, "Priority: %d\n", t.Priority)
-		fmt.Fprintf(detailsView, "Tags: %v\n", t.Tags)
-		fmt.Fprintf(detailsView, "\nDescription:\n%s\n", t.Description)
+		searchedFprintf(detailsView, "ID: %s\n", t.ID)
+		searchedFprintf(detailsView, "Title: %s\n", t.Title)
+		searchedFprintf(detailsView, "Status: %s\n", t.Status)
+		searchedFprintf(detailsView, "Priority: %d\n", t.Priority)
+		searchedFprintf(detailsView, "Tags: %v\n", t.Tags)
+		searchedFprintf(detailsView, "\nDescription:\n%s\n", t.Description)
 	} else {
+		detailsView.FgColor = gocui.ColorRed
 		fmt.Fprintln(detailsView, "No task selected.")
 	}
 	if g.CurrentView() != detailsView {
-		x, y := detailsView.Size()
-		detailsView.SetCursor(x, y)
+		detailsView.Highlight = false
 	} else {
+		detailsView.Highlight = true
 		detailsView.SetCursor(cx, cy)
 	}
 
@@ -190,9 +211,9 @@ func updateViews(g *gocui.Gui) error {
 	if len(tasks) > 0 && selected >= 0 && selected < len(tasks) {
 		switch tasks[selected].Status {
 		case "CLOSED":
-			spaceKeyText = "| Space: Open "
+			spaceKeyText = "| <space>: Open "
 		case "OPEN":
-			spaceKeyText = "| Space: Close "
+			spaceKeyText = "| <space>: Close "
 		}
 	}
 	if showClosed {
@@ -200,7 +221,7 @@ func updateViews(g *gocui.Gui) error {
 	} else {
 		hKeyText = "Show"
 	}
-	helpText := fmt.Sprintf(" q: Quit | n: New | e: Edit | d: Delete %s| H: %s CLOSED | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom | y: Yank", spaceKeyText, hKeyText)
+	helpText := fmt.Sprintf(" e: Edit | d: Delete %s| H: %s CLOSED | /: Search | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom", spaceKeyText, hKeyText)
 	if helpText != helpView.Buffer() {
 		helpView.Clear()
 		fmt.Fprint(helpView, helpText)
@@ -213,13 +234,15 @@ func initKeybindings(g *gocui.Gui) error {
 	bindings := []keybinding{
 		{"", gocui.KeyCtrlC, gocui.ModNone, quit},
 		{"", 'q', gocui.ModNone, quit},
+		{"", '/', gocui.ModNone, promptSearch},
 		{"details", 'y', gocui.ModNone, copyLine},
-		{"details", gocui.KeyTab, gocui.ModNone, SetCurrentViewCallback("list")},
-		{"details", 'h', gocui.ModNone, SetCurrentViewCallback("list")},
+		{"details", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("list")},
+		{"details", 'h', gocui.ModNone, setCurrentViewCallback("list")},
 		{"details", gocui.KeyArrowDown, gocui.ModNone, cursorDown},
 		{"details", 'j', gocui.ModNone, cursorDown},
 		{"details", gocui.KeyArrowUp, gocui.ModNone, cursorUp},
 		{"details", 'k', gocui.ModNone, cursorUp},
+		{"details", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { searchQuery = ""; return loadTasks() }},
 		{"list", 'y', gocui.ModNone, copyLine},
 		{"list", gocui.KeyTab, gocui.ModNone, showDetails},
 		{"list", 'l', gocui.ModNone, showDetails},
@@ -234,6 +257,7 @@ func initKeybindings(g *gocui.Gui) error {
 		{"list", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = 0; return updateViews(g) }},
 		{"list", 'G', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = len(tasks) - 1; return updateViews(g) }},
 		{"list", 'H', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { showClosed = !showClosed; return loadTasks() }},
+		{"list", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { searchQuery = ""; return loadTasks() }},
 	}
 
 	for _, binding := range bindings {

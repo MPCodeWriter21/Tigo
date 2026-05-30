@@ -39,18 +39,19 @@ use $HOME/.local/share/tigo.
 
 ### Keybindings (TUI)
 
-- q / Ctrl+C: Quit Tigo
-- n: Create a new task
-- e: Edit the selected task
-- d: Delete the selected task
-- Space: Toggle task status (OPEN/CLOSED)
-- H: Hide/show CLOSED tasks
-- j / ArrowDown: Cursor down in the task list
-- k / ArrowUp: Cursor up in the task list
-- g / G: Jump to the top/bottom of the task list
-- y: Yank (copy) the selected task's content to the clipboard
-- Enter: Submit dialogs
-- Esc: Cancel dialogs
+- `q` / `Ctrl+C`: Quit Tigo
+- `n`: Create a new task
+- `e`: Edit the selected task
+- `d`: Delete the selected task
+- `<space>`: Toggle task status (OPEN/CLOSED)
+- `H`: Hide/show CLOSED tasks
+- `j` / `<arrow-down>`: Cursor down in the task list
+- `k` / `<arrow-up>`: Cursor up in the task list
+- `g` / `G`: Jump to the top/bottom of the task list
+- `/`: Search tasks by title, description or tags (supports ReGex)
+- `y`: Yank (copy) the selected task's content to the clipboard
+- `<enter>`: Submit dialogs
+- `<esc>`: Cancel dialogs
 
 Task Format
 -----------

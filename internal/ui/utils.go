@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+	"regexp"
 	"strings"
 
 	"tigo/pkg/db"
@@ -67,9 +69,23 @@ func copyLine(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func SetCurrentViewCallback(name string) func(*gocui.Gui, *gocui.View) error {
+func setCurrentViewCallback(name string) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		_, err := g.SetCurrentView(name)
 		return err
+	}
+}
+
+// Works the same as fmt.Fprintf, except if searchQuery is set, it highlights the matching text in the view.
+func searchedFprintf(v *gocui.View, format string, a ...any) {
+	line := fmt.Sprintf(format, a...)
+	if searchQuery != "" {
+		re := regexp.MustCompile("(?i)" + searchQuery)
+		highlighted := re.ReplaceAllStringFunc(line, func(match string) string {
+			return fmt.Sprintf("\x1b[43m%s\x1b[40m", match) // Highlight with yellow background
+		})
+		fmt.Fprint(v, highlighted)
+	} else {
+		fmt.Fprint(v, line)
 	}
 }
