@@ -38,8 +38,8 @@ func GenerateID() string {
 	return time.Now().UTC().Format("20060102-150405")
 }
 
-// CreateTaskDirectory creates a directory and boilerplate TASK.md for a new task.
-func CreateTaskDirectory(root, title string) (string, error) {
+// CreateNewTask creates a directory and boilerplate TASK.md for a new task.
+func CreateNewTask(root, title string, description string) (string, error) {
 	maxRetries := 50
 	for {
 		id := GenerateID()
@@ -62,7 +62,7 @@ func CreateTaskDirectory(root, title string) (string, error) {
 
 		taskMDPath := filepath.Join(taskDir, "TASK.md")
 
-		content := fmt.Sprintf("# %s\n\n- STATUS: OPEN\n- PRIORITY: 50\n- TAGS: \n\n", title)
+		content := fmt.Sprintf("# %s\n\n- STATUS: OPEN\n- PRIORITY: 50\n- TAGS: \n\n%s", title, description)
 		err = os.WriteFile(taskMDPath, []byte(content), 0644)
 		if err != nil {
 			return "", err

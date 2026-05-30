@@ -227,41 +227,60 @@ func initKeybindings(g *gocui.Gui) error {
 func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 	maxX, maxY := g.Size()
 	width := maxX / 2
-	height := 2
+	heightTitle := 3
+	heightDesc := 6
 	x0 := maxX/2 - width/2
-	y0 := maxY/2 - height/2
+	y0 := maxY/2 - heightTitle/2 - heightDesc/2
+	g.Cursor = true
 
-	if v, err := g.SetView("createDialog", x0, y0, x0+width, y0+height, 0); err != nil {
+	if v, err := g.SetView("createDialogTitle", x0, y0, x0+width, y0+heightTitle-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		v.Title = " New Task Title "
+		v.Title = "Title"
 		v.Editable = true
-		v.Wrap = true
-		g.Cursor = true
+		v.Wrap = false
 
-		if _, err := g.SetCurrentView("createDialog"); err != nil {
+		if _, err := g.SetCurrentView("createDialogTitle"); err != nil {
 			return err
 		}
 
-		g.SetKeybinding("createDialog", gocui.KeyEnter, gocui.ModNone, submitCreateTask)
-		g.SetKeybinding("createDialog", gocui.KeyEsc, gocui.ModNone, cancelDialog)
+		g.SetKeybinding("createDialogTitle", gocui.KeyEnter, gocui.ModNone, submitCreateTask)
+		g.SetKeybinding("createDialogTitle", gocui.KeyEsc, gocui.ModNone, closeCreateDialog)
+		g.SetKeybinding("createDialogTitle", gocui.KeyTab, gocui.ModNone, SetCurrentViewCallback("createDialogDescription"))
+	}
+	if v, err := g.SetView("createDialogDescription", x0, y0+heightTitle, x0+width, y0+heightTitle+heightDesc-1, 0); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Title = "Description"
+		v.Editable = true
+		v.Wrap = true
+
+		g.SetKeybinding("createDialogDescription", gocui.KeyEsc, gocui.ModNone, closeCreateDialog)
+		g.SetKeybinding("createDialogDescription", gocui.KeyTab, gocui.ModNone, SetCurrentViewCallback("createDialogTitle"))
 	}
 
 	return nil
 }
 
 func submitCreateTask(g *gocui.Gui, v *gocui.View) error {
-	title := strings.TrimSpace(v.Buffer())
 	g.Cursor = false
 
-	// Create task
-	_, err := db.CreateTaskDirectory(tigoRoot, title)
+	descriptionView, err := g.View("createDialogDescription")
 	if err != nil {
 		return err
 	}
 
-	if err := cancelDialog(g, v); err != nil {
+	title := strings.TrimSpace(v.Buffer())
+	description := strings.TrimSpace(descriptionView.Buffer())
+
+	_, err = db.CreateNewTask(tigoRoot, title, description)
+	if err != nil {
+		return err
+	}
+
+	if err := closeCreateDialog(g, v); err != nil {
 		return err
 	}
 
@@ -271,6 +290,21 @@ func submitCreateTask(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	selected = len(tasks) - 1
+	return updateViews(g)
+}
+
+func closeCreateDialog(g *gocui.Gui, _ *gocui.View) error {
+	g.Cursor = false
+	if err := g.DeleteView("createDialogTitle"); err != nil {
+		return err
+	}
+	if err := g.DeleteView("createDialogDescription"); err != nil {
+		return err
+	}
+
+	if _, err := g.SetCurrentView("list"); err != nil {
+		return err
+	}
 	return updateViews(g)
 }
 
@@ -297,7 +331,7 @@ func promptDeleteTask(g *gocui.Gui, v *gocui.View) error {
 		}
 
 		g.SetKeybinding("deleteDialog", gocui.KeyEnter, gocui.ModNone, submitDeleteTask)
-		g.SetKeybinding("deleteDialog", gocui.KeyEsc, gocui.ModNone, cancelDialog)
+		g.SetKeybinding("deleteDialog", gocui.KeyEsc, gocui.ModNone, closeDialog)
 	}
 
 	return nil
@@ -314,7 +348,7 @@ func submitDeleteTask(g *gocui.Gui, v *gocui.View) error {
 		}
 	}
 
-	if err := cancelDialog(g, v); err != nil {
+	if err := closeDialog(g, v); err != nil {
 		return err
 	}
 
@@ -324,7 +358,7 @@ func submitDeleteTask(g *gocui.Gui, v *gocui.View) error {
 	return updateViews(g)
 }
 
-func cancelDialog(g *gocui.Gui, v *gocui.View) error {
+func closeDialog(g *gocui.Gui, v *gocui.View) error {
 	g.DeleteKeybindings(v.Name())
 	g.Cursor = false
 
@@ -360,4 +394,11 @@ func cursorUp(g *gocui.Gui, v *gocui.View) error {
 		selected--
 	}
 	return updateViews(g)
+}
+
+func SetCurrentViewCallback(name string) func(*gocui.Gui, *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		_, err := g.SetCurrentView(name)
+		return err
+	}
 }
