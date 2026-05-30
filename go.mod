@@ -4,7 +4,7 @@ go 1.26.3
 
 require github.com/awesome-gocui/gocui v1.1.0
 
-require golang.design/x/clipboard v0.7.1 // indirect
+require golang.design/x/clipboard v0.7.1
 
 require (
 	github.com/gdamore/encoding v1.0.0 // indirect
