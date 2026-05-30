@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"tigo/pkg/task"
 	"time"
 )
@@ -39,7 +40,7 @@ func GenerateID() string {
 }
 
 // CreateNewTask creates a directory and boilerplate TASK.md for a new task.
-func CreateNewTask(root, title string, description string) (string, error) {
+func CreateNewTask(root, title string, priority int, tags []string, description string) (string, error) {
 	maxRetries := 50
 	for {
 		id := GenerateID()
@@ -62,7 +63,7 @@ func CreateNewTask(root, title string, description string) (string, error) {
 
 		taskMDPath := filepath.Join(taskDir, "TASK.md")
 
-		content := fmt.Sprintf("# %s\n\n- STATUS: OPEN\n- PRIORITY: 50\n- TAGS: \n\n%s", title, description)
+		content := fmt.Sprintf("# %s\n\n- STATUS: OPEN\n- PRIORITY: %d\n- TAGS: %s\n\n%s", title, priority, strings.Join(tags, ", "), description)
 		err = os.WriteFile(taskMDPath, []byte(content), 0644)
 		if err != nil {
 			return "", err
