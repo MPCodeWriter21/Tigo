@@ -200,7 +200,7 @@ func updateViews(g *gocui.Gui) error {
 	} else {
 		hKeyText = "Show"
 	}
-	helpText := fmt.Sprintf(" q: Quit | n: New | d: Delete %s| H: %s CLOSED | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom | y: Yank", spaceKeyText, hKeyText)
+	helpText := fmt.Sprintf(" q: Quit | n: New | e: Edit | d: Delete %s| H: %s CLOSED | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom | y: Yank", spaceKeyText, hKeyText)
 	if helpText != helpView.Buffer() {
 		helpView.Clear()
 		fmt.Fprint(helpView, helpText)
@@ -227,8 +227,9 @@ func initKeybindings(g *gocui.Gui) error {
 		{"list", 'j', gocui.ModNone, taskListDown},
 		{"list", gocui.KeyArrowUp, gocui.ModNone, taskListUp},
 		{"list", 'k', gocui.ModNone, taskListUp},
-		{"list", gocui.KeySpace, gocui.ModNone, toggleTaskState},
+		{"list", gocui.KeySpace, gocui.ModNone, toggleTaskStatus},
 		{"list", 'n', gocui.ModNone, promptCreateTask},
+		{"list", 'e', gocui.ModNone, promptEditTask},
 		{"list", 'd', gocui.ModNone, promptDeleteTask},
 		{"list", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = 0; return updateViews(g) }},
 		{"list", 'G', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = len(tasks) - 1; return updateViews(g) }},

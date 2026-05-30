@@ -2,15 +2,63 @@ package ui
 
 import (
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"tigo/pkg/db"
+	"tigo/pkg/task"
 
 	"github.com/awesome-gocui/gocui"
 )
 
 func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
+	return _promptTask(g,
+		func(title string, priority int, tags []string, description string) error {
+			if title == "" {
+				return nil
+			}
+
+			_, err := db.CreateNewTask(tigoRoot, title, priority, tags, description)
+			if err != nil {
+				return err
+			}
+
+			selected = len(tasks) - 1
+			return nil
+		},
+		"", 50, []string{}, "")
+}
+
+func promptEditTask(g *gocui.Gui, v *gocui.View) error {
+	if len(tasks) == 0 && selected > len(tasks) {
+		return nil
+	}
+	t := tasks[selected]
+
+	return _promptTask(g,
+		func(title string, priority int, tags []string, description string) error {
+			if title == "" {
+				return fmt.Errorf("title cannot be empty")
+			}
+
+			t.Title = title
+			t.Priority = priority
+			t.Tags = tags
+			t.Description = description
+
+			task.Serialize(t, filepath.Join(tigoRoot, t.ID, "TASK.md"))
+
+			return nil
+		},
+		t.Title, t.Priority, t.Tags, t.Description)
+}
+
+func _promptTask(
+	g *gocui.Gui,
+	successCallback func(title string, priority int, tags []string, description string) error,
+	title string, priority int, tags []string, description string) error {
+
 	maxX, maxY := g.Size()
 	widthTitle := maxX / 2
 	widthPriority := maxX / 6
@@ -29,13 +77,15 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 		v.Title = "Title"
 		v.Editable = true
 		v.Wrap = false
+		fmt.Fprint(v, title)
+		v.SetCursor(len(title), 0)
 
 		if _, err := g.SetCurrentView("createDialogTitle"); err != nil {
 			return err
 		}
 
-		g.SetKeybinding("createDialogTitle", gocui.KeyEnter, gocui.ModNone, submitCreateTask)
-		g.SetKeybinding("createDialogTitle", gocui.KeyEsc, gocui.ModNone, closeCreateTaskDialog)
+		g.SetKeybinding("createDialogTitle", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
+		g.SetKeybinding("createDialogTitle", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
 		g.SetKeybinding("createDialogTitle", gocui.KeyTab, gocui.ModNone, SetCurrentViewCallback("createDialogDescription"))
 	}
 	if v, err := g.SetView("createDialogDescription", x0, y0+heightTitle, x0+widthTitle-1, y0+heightTitle+heightDesc-1, 0); err != nil {
@@ -45,8 +95,10 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 		v.Title = "Description"
 		v.Editable = true
 		v.Wrap = true
+		fmt.Fprint(v, description)
+		v.SetCursor(len(description), strings.Count(description, "\n"))
 
-		g.SetKeybinding("createDialogDescription", gocui.KeyEsc, gocui.ModNone, closeCreateTaskDialog)
+		g.SetKeybinding("createDialogDescription", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
 		g.SetKeybinding("createDialogDescription", gocui.KeyTab, gocui.ModNone, SetCurrentViewCallback("createDialogPriority"))
 	}
 	if v, err := g.SetView("createDialogPriority", x0+widthTitle, y0, x0+widthTitle+widthPriority-1, y0+heightPriority-1, 0); err != nil {
@@ -57,7 +109,7 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 		v.Editable = false
 		v.Wrap = false
 
-		priority := "50"
+		priority := strconv.Itoa(priority)
 		printPriority := func() {
 			v.Clear()
 			spaceCount := (widthPriority - len(priority) - 2) / 2
@@ -67,8 +119,8 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 		}
 		printPriority()
 
-		g.SetKeybinding("createDialogTitle", gocui.KeyEnter, gocui.ModNone, submitCreateTask)
-		g.SetKeybinding("createDialogPriority", gocui.KeyEsc, gocui.ModNone, closeCreateTaskDialog)
+		g.SetKeybinding("createDialogPriority", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
+		g.SetKeybinding("createDialogPriority", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
 		g.SetKeybinding("createDialogPriority", gocui.KeyTab, gocui.ModNone, SetCurrentViewCallback("createDialogTags"))
 
 		// Set keybinds for 0-9 and backspace to modify the priority
@@ -98,82 +150,76 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 		v.Title = "Tags (comma-separated)"
 		v.Editable = true
 		v.Wrap = true
+		fmt.Fprint(v, strings.Join(tags, ", "))
+		v.SetCursor(len(v.Buffer()), 0)
 
-		g.SetKeybinding("createDialogTags", gocui.KeyEsc, gocui.ModNone, closeCreateTaskDialog)
+		g.SetKeybinding("createDialogTags", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
 		g.SetKeybinding("createDialogTags", gocui.KeyTab, gocui.ModNone, SetCurrentViewCallback("createDialogTitle"))
 	}
 
 	return nil
 }
 
-func submitCreateTask(g *gocui.Gui, v *gocui.View) error {
-	titleView, err := g.View("createDialogTitle")
-	if err != nil {
-		return err
-	}
-	priorityView, err := g.View("createDialogPriority")
-	if err != nil {
-		return err
-	}
-	tagsView, err := g.View("createDialogTags")
-	if err != nil {
-		return err
-	}
-	descriptionView, err := g.View("createDialogDescription")
-	if err != nil {
-		return err
-	}
-
-	title := strings.TrimSpace(titleView.Buffer())
-	priorityStr := strings.TrimSpace(priorityView.Buffer())
-	var priority int
-	if priority, err = strconv.Atoi(priorityStr); err != nil {
-		priority = 50
-	}
-	tags := []string{}
-	for tag := range strings.SplitSeq(tagsView.Buffer(), ",") {
-		tag = strings.TrimSpace(tag)
-		if tag != "" {
-			tags = append(tags, tag)
+func _submitPromptTaskCallback(successCallback func(title string, priority int, tags []string, description string) error) func(*gocui.Gui, *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		titleView, err := g.View("createDialogTitle")
+		if err != nil {
+			return err
 		}
-	}
-	description := strings.TrimSpace(descriptionView.Buffer())
+		priorityView, err := g.View("createDialogPriority")
+		if err != nil {
+			return err
+		}
+		tagsView, err := g.View("createDialogTags")
+		if err != nil {
+			return err
+		}
+		descriptionView, err := g.View("createDialogDescription")
+		if err != nil {
+			return err
+		}
 
-	if title == "" {
-		return nil
-	}
+		title := strings.TrimSpace(titleView.Buffer())
+		priorityStr := strings.TrimSpace(priorityView.Buffer())
+		var priority int
+		if priority, err = strconv.Atoi(priorityStr); err != nil {
+			priority = 50
+		}
+		tags := []string{}
+		for tag := range strings.SplitSeq(tagsView.Buffer(), ",") {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				tags = append(tags, tag)
+			}
+		}
+		description := strings.TrimSpace(descriptionView.Buffer())
 
-	_, err = db.CreateNewTask(tigoRoot, title, priority, tags, description)
-	if err != nil {
-		return err
-	}
+		if err := successCallback(title, priority, tags, description); err != nil {
+			return err
+		}
 
-	if err := closeCreateTaskDialog(g, v); err != nil {
-		return err
-	}
+		if err := closePromptTaskDialog(g, v); err != nil {
+			return err
+		}
 
-	// Reload
-	if err := loadTasks(); err != nil {
-		return err
-	}
+		// Reload
+		if err := loadTasks(); err != nil {
+			return err
+		}
 
-	selected = len(tasks) - 1
-	return updateViews(g)
+		return updateViews(g)
+	}
 }
 
-func closeCreateTaskDialog(g *gocui.Gui, _ *gocui.View) error {
+func closePromptTaskDialog(g *gocui.Gui, _ *gocui.View) error {
 	g.Cursor = false
-	if err := g.DeleteView("createDialogTitle"); err != nil {
-		return err
-	}
-	if err := g.DeleteView("createDialogDescription"); err != nil {
-		return err
-	}
-	if err := g.DeleteView("createDialogPriority"); err != nil {
-		return err
-	}
-	if err := g.DeleteView("createDialogTags"); err != nil {
-		return err
+	views := []string{"createDialogTitle", "createDialogDescription", "createDialogPriority", "createDialogTags"}
+
+	for _, v := range views {
+		if err := g.DeleteView(v); err != nil {
+			return err
+		}
+		g.DeleteKeybindings(v)
 	}
 
 	if _, err := g.SetCurrentView("list"); err != nil {

@@ -26,7 +26,7 @@ func closeDialog(g *gocui.Gui, v *gocui.View) error {
 	return updateViews(g)
 }
 
-func toggleTaskState(g *gocui.Gui, v *gocui.View) error {
+func toggleTaskStatus(g *gocui.Gui, v *gocui.View) error {
 	if len(tasks) > 0 && selected < len(tasks) {
 		db.ToggleStatus(tigoRoot, tasks[selected])
 	}

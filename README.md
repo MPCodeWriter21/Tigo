@@ -41,6 +41,7 @@ use $HOME/.local/share/tigo.
 
 - q / Ctrl+C: Quit Tigo
 - n: Create a new task
+- e: Edit the selected task
 - d: Delete the selected task
 - Space: Toggle task status (OPEN/CLOSED)
 - H: Hide/show CLOSED tasks
