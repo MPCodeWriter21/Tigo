@@ -44,6 +44,7 @@ func Run(root string) error {
 	}
 	defer g.Close()
 
+	gocui.DefaultEditor = gocui.EditorFunc(simpleEditor)
 	g.SetManagerFunc(layout)
 
 	if err := initKeybindings(g); err != nil {

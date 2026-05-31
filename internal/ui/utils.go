@@ -101,3 +101,45 @@ func centeredFprintf(v *gocui.View, format string, a ...any) (int, error) {
 	_, err := fmt.Fprintf(v, "%s%s%s%s", padding, trimmedLine, padding, trailingNewLines)
 	return paddingLength, err
 }
+
+// An extention of gocui's default editor that supports
+// + Home and End keys
+func simpleEditor(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
+	if ch != 0 && mod == 0 {
+		v.EditWrite(ch)
+		return
+	}
+	_, cy := v.Cursor()
+
+	switch key {
+	case gocui.KeySpace:
+		v.EditWrite(' ')
+	case gocui.KeyBackspace, gocui.KeyBackspace2:
+		v.EditDelete(true)
+	case gocui.KeyDelete:
+		v.EditDelete(false)
+	case gocui.KeyInsert:
+		v.Overwrite = !v.Overwrite
+	case gocui.KeyEnter:
+		v.EditNewLine()
+	case gocui.KeyArrowDown:
+		v.MoveCursor(0, 1)
+	case gocui.KeyArrowUp:
+		v.MoveCursor(0, -1)
+	case gocui.KeyArrowLeft:
+		v.MoveCursor(-1, 0)
+	case gocui.KeyArrowRight:
+		v.MoveCursor(1, 0)
+	case gocui.KeyHome:
+		v.SetCursor(0, cy)
+	case gocui.KeyEnd:
+		line, _ := v.Line(cy)
+		v.SetCursor(len(line), cy)
+	case gocui.KeyTab:
+		v.EditWrite('\t')
+	case gocui.KeyEsc:
+		// If not here the esc key will act like the KeySpace
+	default:
+		v.EditWrite(ch)
+	}
+}
