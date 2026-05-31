@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	"tigo/pkg/db"
@@ -16,8 +17,9 @@ import (
 var (
 	tigoRoot    string
 	tasks       []*task.Task
-	selected    int  = 0
-	showClosed  bool = false
+	sortBy      string = "id"
+	selected    int    = 0
+	showClosed  bool   = false
 	searchQuery string
 )
 
@@ -80,6 +82,23 @@ func loadTasks() error {
 			}
 			tasks = append(tasks, t)
 		}
+	}
+	switch sortBy {
+	case "id":
+		sort.Slice(tasks, func(i, j int) bool {
+			return tasks[i].ID < tasks[j].ID
+		})
+	case "priority":
+		sort.Slice(tasks, func(i, j int) bool {
+			// Higher priority tasks should come first, so we use > instead of <.
+			return tasks[i].Priority > tasks[j].Priority
+		})
+	case "title":
+		sort.Slice(tasks, func(i, j int) bool {
+			return tasks[i].Title < tasks[j].Title
+		})
+	default:
+		return fmt.Errorf("invalid sort option: %s", sortBy)
 	}
 	selected = min(selected, len(tasks)-1)
 	return nil
@@ -254,6 +273,7 @@ func initKeybindings(g *gocui.Gui) error {
 		{"list", 'n', gocui.ModNone, promptCreateTask},
 		{"list", 'e', gocui.ModNone, promptEditTask},
 		{"list", 'd', gocui.ModNone, promptDeleteTask},
+		{"list", 's', gocui.ModNone, promptSort},
 		{"list", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = 0; return updateViews(g) }},
 		{"list", 'G', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = len(tasks) - 1; return updateViews(g) }},
 		{"list", 'H', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { showClosed = !showClosed; return loadTasks() }},

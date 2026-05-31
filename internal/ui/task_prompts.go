@@ -110,14 +110,18 @@ func _promptTask(
 		v.Wrap = false
 
 		priority := strconv.Itoa(priority)
-		printPriority := func() {
+		printPriority := func() error {
 			v.Clear()
-			spaceCount := (widthPriority - len(priority) - 2) / 2
-			spaces := strings.Repeat(" ", spaceCount)
-			fmt.Fprintf(v, "%s%s%s", spaces, priority, spaces)
-			v.SetCursor(spaceCount+len(priority), 0)
+			padding, err := centeredFprintf(v, "%s", priority)
+			if err != nil {
+				return err
+			}
+			return v.SetCursor(padding+len(priority), 0)
 		}
-		printPriority()
+
+		if err := printPriority(); err != nil {
+			return err
+		}
 
 		g.SetKeybinding("createDialogPriority", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
 		g.SetKeybinding("createDialogPriority", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
@@ -131,16 +135,14 @@ func _promptTask(
 					priority += string(digit)
 					priority = strings.TrimLeft(priority, "0")
 				}
-				printPriority()
-				return nil
+				return printPriority()
 			})
 		}
 		g.SetKeybinding("createDialogPriority", gocui.KeyBackspace, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 			if len(priority) > 0 {
 				priority = priority[:len(priority)-1]
 			}
-			printPriority()
-			return nil
+			return printPriority()
 		})
 	}
 	if v, err := g.SetView("createDialogTags", x0+widthTitle, y0+heightPriority, x0+widthTitle+widthPriority-1, y0+heightPriority+heightTags-1, 0); err != nil {
@@ -309,6 +311,57 @@ func submitSearch(g *gocui.Gui, v *gocui.View) error {
 	v.Clear()
 	v.SetCursor(0, 0)
 	searchQuery = query
+	if err := closeDialog(g, v); err != nil {
+		return err
+	}
+	if err := loadTasks(); err != nil {
+		return err
+	}
+	return updateViews(g)
+}
+
+func promptSort(g *gocui.Gui, v *gocui.View) error {
+	maxX, maxY := g.Size()
+	width := maxX / 2
+	height := 4
+	x0 := maxX/2 - width/2
+	y0 := maxY/2 - height/2
+	if v, err := g.SetView("sort", x0, y0, x0+width, y0+height, 0); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Title = "Sort By"
+		v.Highlight = true
+		v.SetCursor(0, 0)
+		centeredFprintf(v, "1. Task ID \n")
+		centeredFprintf(v, "2. Priority\n")
+		centeredFprintf(v, "3. Title   \n")
+		g.SetKeybinding("sort", gocui.KeyEsc, gocui.ModNone, closeDialog)
+		g.SetKeybinding("sort", gocui.KeyEnter, gocui.ModNone, submitSort)
+		g.SetKeybinding("sort", gocui.KeyArrowDown, gocui.ModNone, cursorDown)
+		g.SetKeybinding("sort", 'j', gocui.ModNone, cursorDown)
+		g.SetKeybinding("sort", gocui.KeyArrowUp, gocui.ModNone, cursorUp)
+		g.SetKeybinding("sort", 'k', gocui.ModNone, cursorUp)
+		g.SetKeybinding("sort", '1', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { v.SetCursor(0, 0); return submitSort(g, v) })
+		g.SetKeybinding("sort", '2', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { v.SetCursor(0, 1); return submitSort(g, v) })
+		g.SetKeybinding("sort", '3', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { v.SetCursor(0, 2); return submitSort(g, v) })
+	}
+	_, err := g.SetCurrentView("sort")
+	return err
+}
+
+func submitSort(g *gocui.Gui, v *gocui.View) error {
+	_, cy := v.Cursor()
+	switch cy {
+	case 0:
+		sortBy = "id"
+	case 1:
+		sortBy = "priority"
+	case 2:
+		sortBy = "title"
+	default:
+		return fmt.Errorf("selection out of range: %d", cy)
+	}
 	if err := closeDialog(g, v); err != nil {
 		return err
 	}

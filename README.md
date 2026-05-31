@@ -48,10 +48,12 @@ use $HOME/.local/share/tigo.
 - `j` / `<arrow-down>`: Cursor down in the task list
 - `k` / `<arrow-up>`: Cursor up in the task list
 - `g` / `G`: Jump to the top/bottom of the task list
-- `/`: Search tasks by title, description or tags (supports ReGex)
+- `/`: Search tasks by title, description or tags (supports RegEx)
+- `s`: Sort tasks by priority, ID or title
 - `y`: Yank (copy) the selected task's content to the clipboard
+- `<tab>`: Switch between different views (e.g., task list, task details)
 - `<enter>`: Submit dialogs
-- `<esc>`: Cancel dialogs
+- `<esc>`: Cancel dialogs / Clear search
 
 Task Format
 -----------

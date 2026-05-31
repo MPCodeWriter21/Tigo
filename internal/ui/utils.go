@@ -38,7 +38,7 @@ func toggleTaskStatus(g *gocui.Gui, v *gocui.View) error {
 func cursorDown(g *gocui.Gui, v *gocui.View) error {
 	cx, cy := v.Cursor()
 	y := v.LinesHeight()
-	if cy < y-1 {
+	if cy < y-2 {
 		return v.SetCursor(cx, cy+1)
 	}
 	return nil
@@ -88,4 +88,16 @@ func searchedFprintf(v *gocui.View, format string, a ...any) {
 	} else {
 		fmt.Fprint(v, line)
 	}
+}
+
+// Prints the formatted string centered in the view. Returns the number of padding spaces added on each side.
+func centeredFprintf(v *gocui.View, format string, a ...any) (int, error) {
+	line := fmt.Sprintf(format, a...)
+	trimmedLine := strings.TrimRight(line, "\n")
+	trailingNewLines := line[len(trimmedLine):]
+	width, _ := v.Size()
+	paddingLength := (width - len(line)) / 2
+	padding := strings.Repeat(" ", paddingLength)
+	_, err := fmt.Fprintf(v, "%s%s%s%s", padding, trimmedLine, padding, trailingNewLines)
+	return paddingLength, err
 }
