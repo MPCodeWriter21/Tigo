@@ -145,6 +145,17 @@ func layout(g *gocui.Gui) error {
 		v.FgColor = gocui.ColorBlue
 	}
 
+	if searchQuery != "" {
+		if v, err := g.SetView("search", 0, maxY-4, maxX/3-1, maxY-2, 0); err != nil {
+			if err != gocui.ErrUnknownView {
+				return err
+			}
+			v.Title = "/"
+			v.Wrap = true
+			v.Editable = true
+		}
+	}
+
 	return updateViews(g)
 }
 
@@ -277,7 +288,7 @@ func initKeybindings(g *gocui.Gui) error {
 		{"list", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = 0; return updateViews(g) }},
 		{"list", 'G', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selected = len(tasks) - 1; return updateViews(g) }},
 		{"list", 'H', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { showClosed = !showClosed; return loadTasks() }},
-		{"list", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { searchQuery = ""; return loadTasks() }},
+		{"list", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { searchQuery = ""; g.DeleteView("search"); return loadTasks() }},
 	}
 
 	for _, binding := range bindings {

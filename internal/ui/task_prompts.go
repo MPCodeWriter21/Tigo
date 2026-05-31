@@ -309,9 +309,13 @@ func promptSearch(g *gocui.Gui, v *gocui.View) error {
 func submitSearch(g *gocui.Gui, v *gocui.View) error {
 	query := strings.TrimSpace(v.Buffer())
 	v.Clear()
-	v.SetCursor(0, 0)
+	fmt.Fprint(v, query)
+	v.SetCursor(len(query), 0)
 	searchQuery = query
-	if err := closeDialog(g, v); err != nil {
+	g.DeleteKeybindings(v.Name())
+	g.Cursor = false
+
+	if _, err := g.SetCurrentView("list"); err != nil {
 		return err
 	}
 	if err := loadTasks(); err != nil {
