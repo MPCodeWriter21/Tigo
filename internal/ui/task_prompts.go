@@ -132,7 +132,7 @@ func _promptTask(
 		g.SetKeybinding("createDialogPriority", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
 		g.SetKeybinding("createDialogPriority", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("createDialogTags"))
 		g.SetKeybinding("createDialogPriority", gocui.KeyCtrlJ, gocui.ModNone, setCurrentViewCallback("createDialogTags"))
-		g.SetKeybinding("createDialogPriority", gocui.KeyCtrlH, gocui.ModNone, setCurrentViewCallback("createDialogTitle"))
+		// TODO: Add support for Ctrl+H (Stupidly enough, it overlaps with backspace and I couldn't find a way to distinguish between them)
 
 		// Set keybinds for 0-9 and backspace to modify the priority
 		for i := '0'; i <= '9'; i++ {
@@ -165,7 +165,7 @@ func _promptTask(
 		g.SetKeybinding("createDialogTags", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
 		g.SetKeybinding("createDialogTags", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("createDialogTitle"))
 		g.SetKeybinding("createDialogTags", gocui.KeyCtrlK, gocui.ModNone, setCurrentViewCallback("createDialogPriority"))
-		g.SetKeybinding("createDialogTags", gocui.KeyCtrlH, gocui.ModNone, setCurrentViewCallback("createDialogDescription"))
+		// TODO: Add support for Ctrl+H (Stupidly enough, it overlaps with backspace and I couldn't find a way to distinguish between them)
 		g.SetKeybinding("createDialogTags", gocui.KeyEnter, gocui.ModShift, _submitPromptTaskCallback(successCallback))
 	}
 
