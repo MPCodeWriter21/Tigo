@@ -87,6 +87,8 @@ func _promptTask(
 		g.SetKeybinding("createDialogTitle", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
 		g.SetKeybinding("createDialogTitle", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
 		g.SetKeybinding("createDialogTitle", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("createDialogDescription"))
+		g.SetKeybinding("createDialogTitle", gocui.KeyCtrlJ, gocui.ModNone, setCurrentViewCallback("createDialogDescription"))
+		g.SetKeybinding("createDialogTitle", gocui.KeyCtrlL, gocui.ModNone, setCurrentViewCallback("createDialogPriority"))
 	}
 	if v, err := g.SetView("createDialogDescription", x0, y0+heightTitle, x0+widthTitle-1, y0+heightTitle+heightDesc-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {
@@ -100,6 +102,9 @@ func _promptTask(
 
 		g.SetKeybinding("createDialogDescription", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
 		g.SetKeybinding("createDialogDescription", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("createDialogPriority"))
+		g.SetKeybinding("createDialogDescription", gocui.KeyCtrlK, gocui.ModNone, setCurrentViewCallback("createDialogTitle"))
+		g.SetKeybinding("createDialogDescription", gocui.KeyCtrlL, gocui.ModNone, setCurrentViewCallback("createDialogTags"))
+		g.SetKeybinding("createDialogDescription", gocui.KeyEnter, gocui.ModShift, _submitPromptTaskCallback(successCallback))
 	}
 	if v, err := g.SetView("createDialogPriority", x0+widthTitle, y0, x0+widthTitle+widthPriority-1, y0+heightPriority-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {
@@ -126,6 +131,8 @@ func _promptTask(
 		g.SetKeybinding("createDialogPriority", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
 		g.SetKeybinding("createDialogPriority", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
 		g.SetKeybinding("createDialogPriority", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("createDialogTags"))
+		g.SetKeybinding("createDialogPriority", gocui.KeyCtrlJ, gocui.ModNone, setCurrentViewCallback("createDialogTags"))
+		g.SetKeybinding("createDialogPriority", gocui.KeyCtrlH, gocui.ModNone, setCurrentViewCallback("createDialogTitle"))
 
 		// Set keybinds for 0-9 and backspace to modify the priority
 		for i := '0'; i <= '9'; i++ {
@@ -157,6 +164,9 @@ func _promptTask(
 
 		g.SetKeybinding("createDialogTags", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
 		g.SetKeybinding("createDialogTags", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("createDialogTitle"))
+		g.SetKeybinding("createDialogTags", gocui.KeyCtrlK, gocui.ModNone, setCurrentViewCallback("createDialogPriority"))
+		g.SetKeybinding("createDialogTags", gocui.KeyCtrlH, gocui.ModNone, setCurrentViewCallback("createDialogDescription"))
+		g.SetKeybinding("createDialogTags", gocui.KeyEnter, gocui.ModShift, _submitPromptTaskCallback(successCallback))
 	}
 
 	return nil
