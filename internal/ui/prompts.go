@@ -33,7 +33,7 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 				return err
 			}
 
-			selectedTask = len(tasks) - 1
+			selectedTask = len(tasks)
 			return nil
 		},
 		"", 50, []string{}, "")
