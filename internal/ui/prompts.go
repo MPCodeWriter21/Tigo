@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -12,11 +13,19 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
+var (
+	ErrPreventDialogClose = errors.New("prevent dialog from closing")
+)
+
 func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 	return _promptTask(g,
 		func(title string, priority int, tags []string, description string) error {
 			if title == "" {
-				return nil
+				err := promptErrorMessage(g, "Empty Title", "A task's title cannot be empty string!", "createDialogTitle", true)
+				if err != nil {
+					return err
+				}
+				return ErrPreventDialogClose
 			}
 
 			_, err := db.CreateNewTask(tigoRoot, title, priority, tags, description)
@@ -39,7 +48,11 @@ func promptEditTask(g *gocui.Gui, v *gocui.View) error {
 	return _promptTask(g,
 		func(title string, priority int, tags []string, description string) error {
 			if title == "" {
-				return fmt.Errorf("title cannot be empty")
+				err := promptErrorMessage(g, "Empty Title", "A task's title cannot be empty string!", "createDialogTitle", true)
+				if err != nil {
+					return err
+				}
+				return ErrPreventDialogClose
 			}
 
 			t.Title = title
@@ -207,6 +220,11 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 		description := strings.TrimSpace(descriptionView.Buffer())
 
 		if err := successCallback(title, priority, tags, description); err != nil {
+			// the callback can return an special error that prevents the dialog from
+			// closing, allowing us to show an error message without losing the user's input
+			if err == ErrPreventDialogClose {
+				return nil
+			}
 			return err
 		}
 
@@ -263,7 +281,7 @@ func promptDeleteTask(g *gocui.Gui, v *gocui.View) error {
 		}
 
 		g.SetKeybinding("deleteDialog", gocui.KeyEnter, gocui.ModNone, submitDeleteTask)
-		g.SetKeybinding("deleteDialog", gocui.KeyEsc, gocui.ModNone, closeDialog)
+		g.SetKeybinding("deleteDialog", gocui.KeyEsc, gocui.ModNone, deleteViewDefault)
 	}
 
 	return nil
@@ -280,7 +298,7 @@ func submitDeleteTask(g *gocui.Gui, v *gocui.View) error {
 		}
 	}
 
-	if err := closeDialog(g, v); err != nil {
+	if err := deleteViewDefault(g, v); err != nil {
 		return err
 	}
 
@@ -300,7 +318,7 @@ func promptSearch(g *gocui.Gui, v *gocui.View) error {
 		v.Title = "/"
 		v.Wrap = true
 		v.Editable = true
-		g.SetKeybinding("search", gocui.KeyEsc, gocui.ModNone, closeDialog)
+		g.SetKeybinding("search", gocui.KeyEsc, gocui.ModNone, deleteViewDefault)
 		g.SetKeybinding("search", gocui.KeyEnter, gocui.ModNone, submitSearch)
 		g.SetKeybinding("search", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 			if searchQuery != "" {
@@ -350,7 +368,7 @@ func promptSort(g *gocui.Gui, v *gocui.View) error {
 		centeredFprintf(v, "1. Task ID \n")
 		centeredFprintf(v, "2. Priority\n")
 		centeredFprintf(v, "3. Title   \n")
-		g.SetKeybinding("sort", gocui.KeyEsc, gocui.ModNone, closeDialog)
+		g.SetKeybinding("sort", gocui.KeyEsc, gocui.ModNone, deleteViewDefault)
 		g.SetKeybinding("sort", gocui.KeyEnter, gocui.ModNone, submitSort)
 		g.SetKeybinding("sort", gocui.KeyArrowDown, gocui.ModNone, cursorDown)
 		g.SetKeybinding("sort", 'j', gocui.ModNone, cursorDown)
@@ -376,11 +394,37 @@ func submitSort(g *gocui.Gui, v *gocui.View) error {
 	default:
 		return fmt.Errorf("selection out of range: %d", cy)
 	}
-	if err := closeDialog(g, v); err != nil {
+	if err := deleteViewDefault(g, v); err != nil {
 		return err
 	}
 	if err := loadTasks(); err != nil {
 		return err
 	}
 	return updateViews(g)
+}
+
+func promptErrorMessage(g *gocui.Gui, title, message, focusView string, focusCursor bool) error {
+	maxX, maxY := g.Size()
+	width := len(message) + 4
+	height := strings.Count(message, "\n") + 2
+	x0 := maxX/2 - width/2
+	y0 := maxY/2 - height/2
+	if v, err := g.SetView("errorMessage", x0, y0, x0+width, y0+height, 0); err != nil {
+		g.Cursor = false
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Title = title
+		v.FgColor = gocui.ColorRed
+		v.Editable = false
+		fmt.Fprint(v, message)
+		g.SetKeybinding(
+			"errorMessage", gocui.KeyEnter, gocui.ModNone,
+			deleteViewAndSetCurrent(focusView, focusCursor))
+		g.SetKeybinding(
+			"errorMessage", gocui.KeyEsc, gocui.ModNone,
+			deleteViewAndSetCurrent(focusView, focusCursor))
+	}
+	_, err := g.SetCurrentView("errorMessage")
+	return err
 }

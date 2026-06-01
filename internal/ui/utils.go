@@ -15,18 +15,22 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func closeDialog(g *gocui.Gui, v *gocui.View) error {
-	g.DeleteKeybindings(v.Name())
-	g.Cursor = false
+func deleteViewAndSetCurrent(viewName string, cursor bool) func(*gocui.Gui, *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		g.DeleteKeybindings(v.Name())
+		g.Cursor = cursor
 
-	if err := g.DeleteView(v.Name()); err != nil {
-		return err
+		if err := g.DeleteView(v.Name()); err != nil {
+			return err
+		}
+		if _, err := g.SetCurrentView(viewName); err != nil {
+			return err
+		}
+		return updateViews(g)
 	}
-	if _, err := g.SetCurrentView("list"); err != nil {
-		return err
-	}
-	return updateViews(g)
 }
+
+var deleteViewDefault = deleteViewAndSetCurrent("list", false)
 
 func toggleTaskStatus(g *gocui.Gui, v *gocui.View) error {
 	if len(tasks) > 0 && selected < len(tasks) {
