@@ -280,6 +280,9 @@ func updateViews(g *gocui.Gui) error {
 			detailsFprintf(detailsView, cx, cy, showSelection, "Status: \x1b[1;35m%s\x1b[0m\n", t.Status)
 		}
 		detailsFprintf(detailsView, cx, cy, showSelection, "Priority: \x1b[1;34m%d\x1b[0m\n", t.Priority)
+		if t.DueDate != "" {
+			detailsFprintf(detailsView, cx, cy, showSelection, "Due Date: \x1b[1;33m%s\x1b[0m\n", t.DueDate)
+		}
 		tagsStr := ""
 		for _, tag := range t.Tags {
 			tagsStr = fmt.Sprintf("%s\x1b[33;4m%s\x1b[0m ", tagsStr, tag)

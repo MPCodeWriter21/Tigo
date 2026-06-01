@@ -16,6 +16,7 @@ type Task struct {
 	Status      string
 	Priority    int
 	Tags        []string
+	DueDate     string
 	Description string
 	RawLines    []string // Used to preserve formatting when serializing
 }
@@ -25,6 +26,7 @@ var (
 	statusRegex   = regexp.MustCompile(`^- STATUS:\s*(.*)$`)
 	priorityRegex = regexp.MustCompile(`^- PRIORITY:\s*([0-9]+)$`)
 	tagsRegex     = regexp.MustCompile(`^- TAGS:\s*(.*)$`)
+	dueDateRegex  = regexp.MustCompile(`^- DUE:\s*(.*)$`)
 
 	// Errors
 	ErrInvalidTitle = errors.New("invalid title value")
@@ -82,6 +84,11 @@ func Parse(id, filePath string) (*Task, error) {
 			continue
 		}
 
+		if dueDateRegex.MatchString(line) {
+			t.DueDate = strings.TrimSpace(dueDateRegex.FindStringSubmatch(line)[1])
+			continue
+		}
+
 		// Skip empty lines between metadata
 		if !metadataDone && strings.TrimSpace(line) == "" {
 			continue
@@ -121,6 +128,10 @@ func Serialize(t *Task, filePath string) error {
 
 	if len(t.Tags) > 0 {
 		newLines = append(newLines, fmt.Sprintf("- TAGS: %s", strings.Join(t.Tags, ", ")))
+	}
+
+	if t.DueDate != "" {
+		newLines = append(newLines, fmt.Sprintf("- DUE: %s", t.DueDate))
 	}
 
 	if len(t.Description) > 0 {

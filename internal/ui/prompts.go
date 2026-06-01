@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"tigo/pkg/db"
 	"tigo/pkg/task"
@@ -19,7 +20,7 @@ var (
 
 func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 	return _promptTask(g,
-		func(title string, priority int, tags []string, description string) error {
+		func(title string, priority int, tags []string, dueDate string, description string) error {
 			if title == "" {
 				err := promptErrorMessage(g, "Empty Title", "A task's title cannot be empty string!", "taskDialogTitle", true)
 				if err != nil {
@@ -28,7 +29,7 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 				return ErrPreventDialogClose
 			}
 
-			_, err := db.CreateNewTask(tigoRoot, title, priority, tags, description)
+			_, err := db.CreateNewTask(tigoRoot, title, priority, tags, dueDate, description)
 			if err != nil {
 				return err
 			}
@@ -36,7 +37,7 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 			selectedTask = len(tasks)
 			return nil
 		},
-		"", 50, []string{}, "")
+		"", 50, []string{}, "", "")
 }
 
 func promptEditTask(g *gocui.Gui, v *gocui.View) error {
@@ -46,7 +47,7 @@ func promptEditTask(g *gocui.Gui, v *gocui.View) error {
 	t := tasks[selectedTask]
 
 	return _promptTask(g,
-		func(title string, priority int, tags []string, description string) error {
+		func(title string, priority int, tags []string, dueDate string, description string) error {
 			if title == "" {
 				err := promptErrorMessage(g, "Empty Title", "A task's title cannot be empty string!", "taskDialogTitle", true)
 				if err != nil {
@@ -58,27 +59,29 @@ func promptEditTask(g *gocui.Gui, v *gocui.View) error {
 			t.Title = title
 			t.Priority = priority
 			t.Tags = tags
+			t.DueDate = dueDate
 			t.Description = description
 
 			task.Serialize(t, filepath.Join(tigoRoot, t.ID, "TASK.md"))
 
 			return nil
 		},
-		t.Title, t.Priority, t.Tags, t.Description)
+		t.Title, t.Priority, t.Tags, t.DueDate, t.Description)
 }
 
 func _promptTask(
 	g *gocui.Gui,
-	successCallback func(title string, priority int, tags []string, description string) error,
-	title string, priority int, tags []string, description string) error {
+	successCallback func(title string, priority int, tags []string, dueDate string, description string) error,
+	title string, priority int, tags []string, dueDate string, description string) error {
 
 	maxX, maxY := g.Size()
 	widthTitle := maxX / 2
 	widthPriority := maxX / 6
 	heightTitle := 3
-	heightDesc := 6
-	heightPriority := heightTitle
-	heightTags := heightDesc
+	heightPriority := 3
+	heightDueDate := 3
+	heightTags := 3
+	heightDesc := heightPriority + heightDueDate + heightTags - heightTitle // 9 - 3 = 6
 	x0 := maxX/2 - widthTitle/2 - widthPriority/2
 	y0 := maxY/2 - heightTitle/2 - heightDesc/2
 	g.Cursor = true
@@ -117,7 +120,7 @@ func _promptTask(
 		g.SetKeybinding("taskDialogDescription", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
 		g.SetKeybinding("taskDialogDescription", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("taskDialogPriority"))
 		g.SetKeybinding("taskDialogDescription", gocui.KeyCtrlK, gocui.ModNone, setCurrentViewCallback("taskDialogTitle"))
-		g.SetKeybinding("taskDialogDescription", gocui.KeyCtrlL, gocui.ModNone, setCurrentViewCallback("taskDialogTags"))
+		g.SetKeybinding("taskDialogDescription", gocui.KeyCtrlL, gocui.ModNone, setCurrentViewCallback("taskDialogDueDate"))
 		g.SetKeybinding("taskDialogDescription", gocui.KeyEnter, gocui.ModShift, _submitPromptTaskCallback(successCallback))
 	}
 	if v, err := g.SetView("taskDialogPriority", x0+widthTitle, y0, x0+widthTitle+widthPriority-1, y0+heightPriority-1, 0); err != nil {
@@ -144,8 +147,8 @@ func _promptTask(
 
 		g.SetKeybinding("taskDialogPriority", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
 		g.SetKeybinding("taskDialogPriority", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
-		g.SetKeybinding("taskDialogPriority", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("taskDialogTags"))
-		g.SetKeybinding("taskDialogPriority", gocui.KeyCtrlJ, gocui.ModNone, setCurrentViewCallback("taskDialogTags"))
+		g.SetKeybinding("taskDialogPriority", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("taskDialogDueDate"))
+		g.SetKeybinding("taskDialogPriority", gocui.KeyCtrlJ, gocui.ModNone, setCurrentViewCallback("taskDialogDueDate"))
 		// TODO: Add support for Ctrl+H (Stupidly enough, it overlaps with backspace and I couldn't find a way to distinguish between them)
 
 		// Set keybinds for 0-9 and backspace to modify the priority
@@ -166,33 +169,55 @@ func _promptTask(
 			return printPriority()
 		})
 	}
-	if v, err := g.SetView("taskDialogTags", x0+widthTitle, y0+heightPriority, x0+widthTitle+widthPriority-1, y0+heightPriority+heightTags-1, 0); err != nil {
+	if v, err := g.SetView("taskDialogDueDate", x0+widthTitle, y0+heightPriority, x0+widthTitle+widthPriority-1, y0+heightPriority+heightDueDate-1, 0); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Title = "Due Date"
+		v.Editable = true
+		v.Wrap = false
+		v.Editor = gocui.EditorFunc(oneLineEditor)
+		fmt.Fprint(v, dueDate)
+		v.SetCursor(len(dueDate), 0)
+
+		g.SetKeybinding("taskDialogDueDate", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
+		g.SetKeybinding("taskDialogDueDate", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("taskDialogTags"))
+		g.SetKeybinding("taskDialogDueDate", gocui.KeyCtrlK, gocui.ModNone, setCurrentViewCallback("taskDialogPriority"))
+		g.SetKeybinding("taskDialogDueDate", gocui.KeyCtrlJ, gocui.ModNone, setCurrentViewCallback("taskDialogTags"))
+		g.SetKeybinding("taskDialogDueDate", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
+	}
+	if v, err := g.SetView("taskDialogTags", x0+widthTitle, y0+heightPriority+heightDueDate, x0+widthTitle+widthPriority-1, y0+heightPriority+heightDueDate+heightTags-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
 		v.Title = "Tags (comma-separated)"
 		v.Editable = true
-		v.Wrap = true
+		v.Wrap = false
+		v.Editor = gocui.EditorFunc(oneLineEditor)
 		fmt.Fprint(v, strings.Join(tags, ", "))
 		v.SetCursor(len(v.Buffer()), 0)
 
 		g.SetKeybinding("taskDialogTags", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
 		g.SetKeybinding("taskDialogTags", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("taskDialogTitle"))
-		g.SetKeybinding("taskDialogTags", gocui.KeyCtrlK, gocui.ModNone, setCurrentViewCallback("taskDialogPriority"))
+		g.SetKeybinding("taskDialogTags", gocui.KeyCtrlK, gocui.ModNone, setCurrentViewCallback("taskDialogDueDate"))
 		// TODO: Add support for Ctrl+H (Stupidly enough, it overlaps with backspace and I couldn't find a way to distinguish between them)
-		g.SetKeybinding("taskDialogTags", gocui.KeyEnter, gocui.ModShift, _submitPromptTaskCallback(successCallback))
+		g.SetKeybinding("taskDialogTags", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
 	}
 
 	return nil
 }
 
-func _submitPromptTaskCallback(successCallback func(title string, priority int, tags []string, description string) error) func(*gocui.Gui, *gocui.View) error {
+func _submitPromptTaskCallback(successCallback func(title string, priority int, tags []string, dueDate string, description string) error) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		titleView, err := g.View("taskDialogTitle")
 		if err != nil {
 			return err
 		}
 		priorityView, err := g.View("taskDialogPriority")
+		if err != nil {
+			return err
+		}
+		dueDateView, err := g.View("taskDialogDueDate")
 		if err != nil {
 			return err
 		}
@@ -207,6 +232,24 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 
 		title := strings.TrimSpace(titleView.Buffer())
 		priorityStr := strings.TrimSpace(priorityView.Buffer())
+		dueDate := strings.TrimSpace(dueDateView.Buffer())
+
+		// Validate due date before proceeding
+		if dueDate != "" {
+			_, errDateOnly := time.Parse("2006-01-02", dueDate)
+			_, errDateTime := time.Parse("2006-01-02 15:04", dueDate)
+			_, errDateTimeFull := time.Parse("2006-01-02 15:04:05", dueDate)
+
+			if errDateOnly != nil && errDateTime != nil && errDateTimeFull != nil {
+				err := promptErrorMessage(g, "Invalid Due Date", "Due date must be in YYYY-MM-DD or YYYY-MM-DD HH:MM format, or empty!", "taskDialogDueDate", true)
+				if err != nil {
+					return err
+				}
+				// Return nil to abort the submission and prevent the dialog from closing
+				return nil
+			}
+		}
+
 		var priority int
 		if priority, err = strconv.Atoi(priorityStr); err != nil {
 			priority = 50
@@ -220,7 +263,7 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 		}
 		description := strings.TrimSpace(descriptionView.Buffer())
 
-		if err := successCallback(title, priority, tags, description); err != nil {
+		if err := successCallback(title, priority, tags, dueDate, description); err != nil {
 			// the callback can return an special error that prevents the dialog from
 			// closing, allowing us to show an error message without losing the user's input
 			if err == ErrPreventDialogClose {
@@ -244,7 +287,7 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 
 func closePromptTaskDialog(g *gocui.Gui, _ *gocui.View) error {
 	g.Cursor = false
-	views := []string{"taskDialogTitle", "taskDialogDescription", "taskDialogPriority", "taskDialogTags"}
+	views := []string{"taskDialogTitle", "taskDialogDescription", "taskDialogPriority", "taskDialogDueDate", "taskDialogTags"}
 
 	for _, v := range views {
 		if err := g.DeleteView(v); err != nil {

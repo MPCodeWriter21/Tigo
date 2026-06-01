@@ -39,7 +39,7 @@ func GenerateID() string {
 }
 
 // CreateNewTask creates a directory and boilerplate TASK.md for a new task.
-func CreateNewTask(root, title string, priority int, tags []string, description string) (string, error) {
+func CreateNewTask(root, title string, priority int, tags []string, dueDate string, description string) (string, error) {
 	maxRetries := 50
 	for {
 		id := GenerateID()
@@ -68,6 +68,7 @@ func CreateNewTask(root, title string, priority int, tags []string, description 
 			Status:      "OPEN",
 			Priority:    priority,
 			Tags:        tags,
+			DueDate:     dueDate,
 			Description: description,
 		}, taskMDPath); err != nil {
 			return "", err

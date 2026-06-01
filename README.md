@@ -43,7 +43,6 @@ use $HOME/.local/share/tigo.
 - `n`: Create a new task
 - `e`: Edit the selected task
 - `d`: Delete the selected task
-- `<space>`: Toggle task status (OPEN/CLOSED)
 - `H`: Hide/show CLOSED tasks
 - `j` / `<arrow-down>`: Cursor down in the task list
 - `k` / `<arrow-up>`: Cursor up in the task list
@@ -51,6 +50,7 @@ use $HOME/.local/share/tigo.
 - `/`: Search tasks by title, description or tags (supports RegEx)
 - `s`: Sort tasks by priority, ID or title
 - `y`: Yank (copy) the selected task's content to the clipboard
+- `<space>`: Toggle task status (OPEN/CLOSED) / Follow hyperlink
 - `<tab>`: Switch between different views (e.g., task list, task details)
 - `<enter>`: Submit dialogs
 - `<esc>`: Cancel dialogs / Clear search
@@ -66,6 +66,7 @@ Each task directory contains a TASK.md containing task metadata and a descriptio
 - STATUS: OPEN
 - PRIORITY: 70
 [- TAGS: bug, UI]
+[- DUE: 2026-05-11]
 
 [description-of-the-task]
 ```

@@ -15,6 +15,7 @@ func TestParseAndSerialize(t *testing.T) {
 - STATUS: OPEN
 - PRIORITY: 75
 - TAGS: feature, ui
+- DUE: 2026-05-11
 
 This is an example description.
 With multiple lines.`
@@ -41,6 +42,9 @@ With multiple lines.`
 	if len(task.Tags) != 2 || task.Tags[0] != "feature" || task.Tags[1] != "ui" {
 		t.Errorf("Expected tags [feature, ui], got %v", task.Tags)
 	}
+	if task.DueDate != "2026-05-11" {
+		t.Errorf("Expected due date '2026-05-11', got '%s'", task.DueDate)
+	}
 	if task.Description != "This is an example description.\nWith multiple lines." {
 		t.Errorf("Unexpected description: %s", task.Description)
 	}
@@ -50,6 +54,7 @@ With multiple lines.`
 	task.Status = "WIP"
 	task.Priority = 90
 	task.Tags = []string{"backend"}
+	task.DueDate = "2026-06-01"
 	task.Description = "New description."
 
 	err = Serialize(task, filePath)
@@ -68,5 +73,8 @@ With multiple lines.`
 	}
 	if task2.Status != "WIP" {
 		t.Errorf("Expected status 'WIP', got '%s'", task2.Status)
+	}
+	if task2.DueDate != "2026-06-01" {
+		t.Errorf("Expected due date '2026-06-01', got '%s'", task2.DueDate)
 	}
 }
