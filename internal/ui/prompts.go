@@ -21,7 +21,7 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 	return _promptTask(g,
 		func(title string, priority int, tags []string, description string) error {
 			if title == "" {
-				err := promptErrorMessage(g, "Empty Title", "A task's title cannot be empty string!", "createDialogTitle", true)
+				err := promptErrorMessage(g, "Empty Title", "A task's title cannot be empty string!", "taskDialogTitle", true)
 				if err != nil {
 					return err
 				}
@@ -48,7 +48,7 @@ func promptEditTask(g *gocui.Gui, v *gocui.View) error {
 	return _promptTask(g,
 		func(title string, priority int, tags []string, description string) error {
 			if title == "" {
-				err := promptErrorMessage(g, "Empty Title", "A task's title cannot be empty string!", "createDialogTitle", true)
+				err := promptErrorMessage(g, "Empty Title", "A task's title cannot be empty string!", "taskDialogTitle", true)
 				if err != nil {
 					return err
 				}
@@ -83,7 +83,7 @@ func _promptTask(
 	y0 := maxY/2 - heightTitle/2 - heightDesc/2
 	g.Cursor = true
 
-	if v, err := g.SetView("createDialogTitle", x0, y0, x0+widthTitle-1, y0+heightTitle-1, 0); err != nil {
+	if v, err := g.SetView("taskDialogTitle", x0, y0, x0+widthTitle-1, y0+heightTitle-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -93,17 +93,17 @@ func _promptTask(
 		fmt.Fprint(v, title)
 		v.SetCursor(len(title), 0)
 
-		if _, err := g.SetCurrentView("createDialogTitle"); err != nil {
+		if _, err := g.SetCurrentView("taskDialogTitle"); err != nil {
 			return err
 		}
 
-		g.SetKeybinding("createDialogTitle", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
-		g.SetKeybinding("createDialogTitle", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
-		g.SetKeybinding("createDialogTitle", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("createDialogDescription"))
-		g.SetKeybinding("createDialogTitle", gocui.KeyCtrlJ, gocui.ModNone, setCurrentViewCallback("createDialogDescription"))
-		g.SetKeybinding("createDialogTitle", gocui.KeyCtrlL, gocui.ModNone, setCurrentViewCallback("createDialogPriority"))
+		g.SetKeybinding("taskDialogTitle", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
+		g.SetKeybinding("taskDialogTitle", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
+		g.SetKeybinding("taskDialogTitle", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("taskDialogDescription"))
+		g.SetKeybinding("taskDialogTitle", gocui.KeyCtrlJ, gocui.ModNone, setCurrentViewCallback("taskDialogDescription"))
+		g.SetKeybinding("taskDialogTitle", gocui.KeyCtrlL, gocui.ModNone, setCurrentViewCallback("taskDialogPriority"))
 	}
-	if v, err := g.SetView("createDialogDescription", x0, y0+heightTitle, x0+widthTitle-1, y0+heightTitle+heightDesc-1, 0); err != nil {
+	if v, err := g.SetView("taskDialogDescription", x0, y0+heightTitle, x0+widthTitle-1, y0+heightTitle+heightDesc-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -113,13 +113,13 @@ func _promptTask(
 		fmt.Fprint(v, description)
 		v.SetCursor(len(description), strings.Count(description, "\n"))
 
-		g.SetKeybinding("createDialogDescription", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
-		g.SetKeybinding("createDialogDescription", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("createDialogPriority"))
-		g.SetKeybinding("createDialogDescription", gocui.KeyCtrlK, gocui.ModNone, setCurrentViewCallback("createDialogTitle"))
-		g.SetKeybinding("createDialogDescription", gocui.KeyCtrlL, gocui.ModNone, setCurrentViewCallback("createDialogTags"))
-		g.SetKeybinding("createDialogDescription", gocui.KeyEnter, gocui.ModShift, _submitPromptTaskCallback(successCallback))
+		g.SetKeybinding("taskDialogDescription", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
+		g.SetKeybinding("taskDialogDescription", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("taskDialogPriority"))
+		g.SetKeybinding("taskDialogDescription", gocui.KeyCtrlK, gocui.ModNone, setCurrentViewCallback("taskDialogTitle"))
+		g.SetKeybinding("taskDialogDescription", gocui.KeyCtrlL, gocui.ModNone, setCurrentViewCallback("taskDialogTags"))
+		g.SetKeybinding("taskDialogDescription", gocui.KeyEnter, gocui.ModShift, _submitPromptTaskCallback(successCallback))
 	}
-	if v, err := g.SetView("createDialogPriority", x0+widthTitle, y0, x0+widthTitle+widthPriority-1, y0+heightPriority-1, 0); err != nil {
+	if v, err := g.SetView("taskDialogPriority", x0+widthTitle, y0, x0+widthTitle+widthPriority-1, y0+heightPriority-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -141,16 +141,16 @@ func _promptTask(
 			return err
 		}
 
-		g.SetKeybinding("createDialogPriority", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
-		g.SetKeybinding("createDialogPriority", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
-		g.SetKeybinding("createDialogPriority", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("createDialogTags"))
-		g.SetKeybinding("createDialogPriority", gocui.KeyCtrlJ, gocui.ModNone, setCurrentViewCallback("createDialogTags"))
+		g.SetKeybinding("taskDialogPriority", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
+		g.SetKeybinding("taskDialogPriority", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
+		g.SetKeybinding("taskDialogPriority", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("taskDialogTags"))
+		g.SetKeybinding("taskDialogPriority", gocui.KeyCtrlJ, gocui.ModNone, setCurrentViewCallback("taskDialogTags"))
 		// TODO: Add support for Ctrl+H (Stupidly enough, it overlaps with backspace and I couldn't find a way to distinguish between them)
 
 		// Set keybinds for 0-9 and backspace to modify the priority
 		for i := '0'; i <= '9'; i++ {
 			digit := rune(i)
-			g.SetKeybinding("createDialogPriority", digit, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+			g.SetKeybinding("taskDialogPriority", digit, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 				if len(priority) < 10 {
 					priority += string(digit)
 					priority = strings.TrimLeft(priority, "0")
@@ -158,14 +158,14 @@ func _promptTask(
 				return printPriority()
 			})
 		}
-		g.SetKeybinding("createDialogPriority", gocui.KeyBackspace, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		g.SetKeybinding("taskDialogPriority", gocui.KeyBackspace, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 			if len(priority) > 0 {
 				priority = priority[:len(priority)-1]
 			}
 			return printPriority()
 		})
 	}
-	if v, err := g.SetView("createDialogTags", x0+widthTitle, y0+heightPriority, x0+widthTitle+widthPriority-1, y0+heightPriority+heightTags-1, 0); err != nil {
+	if v, err := g.SetView("taskDialogTags", x0+widthTitle, y0+heightPriority, x0+widthTitle+widthPriority-1, y0+heightPriority+heightTags-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -175,11 +175,11 @@ func _promptTask(
 		fmt.Fprint(v, strings.Join(tags, ", "))
 		v.SetCursor(len(v.Buffer()), 0)
 
-		g.SetKeybinding("createDialogTags", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
-		g.SetKeybinding("createDialogTags", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("createDialogTitle"))
-		g.SetKeybinding("createDialogTags", gocui.KeyCtrlK, gocui.ModNone, setCurrentViewCallback("createDialogPriority"))
+		g.SetKeybinding("taskDialogTags", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
+		g.SetKeybinding("taskDialogTags", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("taskDialogTitle"))
+		g.SetKeybinding("taskDialogTags", gocui.KeyCtrlK, gocui.ModNone, setCurrentViewCallback("taskDialogPriority"))
 		// TODO: Add support for Ctrl+H (Stupidly enough, it overlaps with backspace and I couldn't find a way to distinguish between them)
-		g.SetKeybinding("createDialogTags", gocui.KeyEnter, gocui.ModShift, _submitPromptTaskCallback(successCallback))
+		g.SetKeybinding("taskDialogTags", gocui.KeyEnter, gocui.ModShift, _submitPromptTaskCallback(successCallback))
 	}
 
 	return nil
@@ -187,19 +187,19 @@ func _promptTask(
 
 func _submitPromptTaskCallback(successCallback func(title string, priority int, tags []string, description string) error) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
-		titleView, err := g.View("createDialogTitle")
+		titleView, err := g.View("taskDialogTitle")
 		if err != nil {
 			return err
 		}
-		priorityView, err := g.View("createDialogPriority")
+		priorityView, err := g.View("taskDialogPriority")
 		if err != nil {
 			return err
 		}
-		tagsView, err := g.View("createDialogTags")
+		tagsView, err := g.View("taskDialogTags")
 		if err != nil {
 			return err
 		}
-		descriptionView, err := g.View("createDialogDescription")
+		descriptionView, err := g.View("taskDialogDescription")
 		if err != nil {
 			return err
 		}
@@ -243,7 +243,7 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 
 func closePromptTaskDialog(g *gocui.Gui, _ *gocui.View) error {
 	g.Cursor = false
-	views := []string{"createDialogTitle", "createDialogDescription", "createDialogPriority", "createDialogTags"}
+	views := []string{"taskDialogTitle", "taskDialogDescription", "taskDialogPriority", "taskDialogTags"}
 
 	for _, v := range views {
 		if err := g.DeleteView(v); err != nil {
