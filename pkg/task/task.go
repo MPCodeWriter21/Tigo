@@ -2,6 +2,7 @@ package task
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -24,6 +25,10 @@ var (
 	statusRegex   = regexp.MustCompile(`^- STATUS:\s*(.*)$`)
 	priorityRegex = regexp.MustCompile(`^- PRIORITY:\s*([0-9]+)$`)
 	tagsRegex     = regexp.MustCompile(`^- TAGS:\s*(.*)$`)
+
+	// Errors
+	ErrInvalidTitle = errors.New("invalid title value")
+	ErrEmptyTitle   = errors.New("title cannot be empty")
 )
 
 // Parse reads a TASK.md file and extracts data into a Task object.
@@ -101,6 +106,10 @@ func Parse(id, filePath string) (*Task, error) {
 func Serialize(t *Task, filePath string) error {
 	var newLines []string
 
+	if err := Validate(t); err != nil {
+		return err
+	}
+
 	// TODO: Replace only the lines that need updating (e.g. status, priority) instead
 	// of rewriting the whole file.
 
@@ -121,4 +130,15 @@ func Serialize(t *Task, filePath string) error {
 	}
 
 	return os.WriteFile(filePath, []byte(strings.Join(newLines, "\n")), 0644)
+}
+
+// Validate checks if the Task has valid fields (e.g. non-empty title, valid status).
+func Validate(t *Task) error {
+	if strings.TrimSpace(t.Title) == "" {
+		return ErrEmptyTitle
+	}
+	if strings.ContainsAny(t.Title, "\n\r") {
+		return ErrInvalidTitle
+	}
+	return nil
 }
