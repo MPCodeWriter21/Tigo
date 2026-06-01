@@ -89,6 +89,7 @@ func _promptTask(
 		}
 		v.Title = "Title"
 		v.Editable = true
+		v.Editor = gocui.EditorFunc(oneLineEditor)
 		v.Wrap = false
 		fmt.Fprint(v, title)
 		v.SetCursor(len(title), 0)
@@ -320,6 +321,7 @@ func promptSearch(g *gocui.Gui, _ *gocui.View) error {
 	v.Title = "/"
 	v.Wrap = true
 	v.Editable = true
+	v.Editor = gocui.EditorFunc(oneLineEditor)
 	g.SetKeybinding("search", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if searchQuery == "" {
 			return deleteViewDefault(g, v)
