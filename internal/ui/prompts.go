@@ -33,17 +33,17 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 				return err
 			}
 
-			selected = len(tasks) - 1
+			selectedTask = len(tasks) - 1
 			return nil
 		},
 		"", 50, []string{}, "")
 }
 
 func promptEditTask(g *gocui.Gui, v *gocui.View) error {
-	if len(tasks) == 0 && selected > len(tasks) {
+	if len(tasks) == 0 && selectedTask > len(tasks) {
 		return nil
 	}
-	t := tasks[selected]
+	t := tasks[selectedTask]
 
 	return _promptTask(g,
 		func(title string, priority int, tags []string, description string) error {
@@ -252,7 +252,7 @@ func closePromptTaskDialog(g *gocui.Gui, _ *gocui.View) error {
 		g.DeleteKeybindings(v)
 	}
 
-	if _, err := g.SetCurrentView("list"); err != nil {
+	if _, err := g.SetCurrentView("tasks"); err != nil {
 		return err
 	}
 	return updateViews(g)
@@ -288,13 +288,13 @@ func promptDeleteTask(g *gocui.Gui, v *gocui.View) error {
 }
 
 func submitDeleteTask(g *gocui.Gui, v *gocui.View) error {
-	if len(tasks) > 0 && selected < len(tasks) {
-		t := tasks[selected]
+	if len(tasks) > 0 && selectedTask < len(tasks) {
+		t := tasks[selectedTask]
 
 		db.DeleteTask(tigoRoot, t.ID)
 
-		if selected > 0 {
-			selected--
+		if selectedTask > 0 {
+			selectedTask--
 		}
 	}
 
@@ -343,7 +343,7 @@ func submitSearch(g *gocui.Gui, v *gocui.View) error {
 	g.DeleteKeybindings(v.Name())
 	g.Cursor = false
 
-	if _, err := g.SetCurrentView("list"); err != nil {
+	if _, err := g.SetCurrentView("tasks"); err != nil {
 		return err
 	}
 	if err := loadTasks(); err != nil {

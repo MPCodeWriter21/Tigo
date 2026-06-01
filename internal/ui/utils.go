@@ -30,11 +30,11 @@ func deleteViewAndSetCurrent(viewName string, cursor bool) func(*gocui.Gui, *goc
 	}
 }
 
-var deleteViewDefault = deleteViewAndSetCurrent("list", false)
+var deleteViewDefault = deleteViewAndSetCurrent("tasks", false)
 
 func toggleTaskStatus(g *gocui.Gui, v *gocui.View) error {
-	if len(tasks) > 0 && selected < len(tasks) {
-		db.ToggleStatus(tigoRoot, tasks[selected])
+	if len(tasks) > 0 && selectedTask < len(tasks) {
+		db.ToggleStatus(tigoRoot, tasks[selectedTask])
 	}
 	return nil
 }
