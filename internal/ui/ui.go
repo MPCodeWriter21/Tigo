@@ -12,15 +12,19 @@ import (
 	"tigo/pkg/task"
 
 	"github.com/awesome-gocui/gocui"
+	"golang.design/x/clipboard"
 )
 
 var (
-	tigoRoot     string
-	tasks        []*task.Task
-	sortBy       string = "id"
-	showClosed   bool   = false
-	selectedTask int    = 0
-	searchQuery  string
+	tigoRoot          string
+	tasks             []*task.Task
+	sortBy            string = "id"
+	showClosed        bool   = false
+	selectedTask      int    = 0
+	searchQuery       string
+	currentDetail     string
+	currentDetailLine string
+	allANSIRegex      = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 )
 
 type keybinding struct {
@@ -212,26 +216,40 @@ func updateViews(g *gocui.Gui) error {
 	}
 
 	// details view
-	cx, cy := detailsView.Cursor()
+	var (
+		cx = new(int)
+		cy = new(int)
+	)
+	*cx, *cy = detailsView.Cursor()
 	detailsView.Clear()
 	if len(tasks) > 0 && selectedTask >= 0 && selectedTask < len(tasks) {
 		detailsView.FgColor = gocui.ColorWhite
 		t := tasks[selectedTask]
-		searchedFprintf(detailsView, "ID: %s\n", t.ID)
-		searchedFprintf(detailsView, "Title: %s\n", t.Title)
-		searchedFprintf(detailsView, "Status: %s\n", t.Status)
-		searchedFprintf(detailsView, "Priority: %d\n", t.Priority)
-		searchedFprintf(detailsView, "Tags: %v\n", t.Tags)
-		searchedFprintf(detailsView, "\nDescription:\n%s\n", t.Description)
+		showSelection := g.CurrentView() == detailsView
+
+		detailsFprintf(detailsView, cx, cy, showSelection, "ID: \x1b[1;36m%s\x1b[0m\n", t.ID)
+		detailsFprintf(detailsView, cx, cy, showSelection, "Title: \x1b[1;32m%s\x1b[0m\n", t.Title)
+		switch t.Status {
+		case "OPEN":
+			detailsFprintf(detailsView, cx, cy, showSelection, "Status: \x1b[1;37mOPEN\x1b[0m\n")
+		case "CLOSED":
+			detailsFprintf(detailsView, cx, cy, showSelection, "Status: \x1b[1;32mCLOSED\x1b[0m\n")
+		default:
+			detailsFprintf(detailsView, cx, cy, showSelection, "Status: \x1b[1;35m%s\x1b[0m\n", t.Status)
+		}
+		detailsFprintf(detailsView, cx, cy, showSelection, "Priority: \x1b[1;34m%d\x1b[0m\n", t.Priority)
+		tagsStr := ""
+		for _, tag := range t.Tags {
+			tagsStr = fmt.Sprintf("%s\x1b[1;33m%s\x1b[0m ", tagsStr, tag)
+		}
+		detailsFprintf(detailsView, cx, cy, showSelection, "Tags: %s\n", tagsStr)
+		detailsFprintf(detailsView, cx, cy, showSelection, "\nDescription:\n%s\n", t.Description)
 	} else {
 		detailsView.FgColor = gocui.ColorRed
 		fmt.Fprintln(detailsView, "No task selected.")
 	}
-	if g.CurrentView() != detailsView {
-		detailsView.Highlight = false
-	} else {
-		detailsView.Highlight = true
-		detailsView.SetCursor(cx, cy)
+	if g.CurrentView() == detailsView {
+		detailsView.SetCursor(*cx, *cy)
 	}
 
 	// help view
@@ -266,13 +284,17 @@ func initKeybindings(g *gocui.Gui) error {
 		{"", gocui.KeyCtrlC, gocui.ModNone, quit},
 		{"", 'q', gocui.ModNone, quit},
 		{"", '/', gocui.ModNone, promptSearch},
-		{"details", 'y', gocui.ModNone, copyLine},
+		{"details", 'y', gocui.ModNone, copyDetail},
 		{"details", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("tasks")},
-		{"details", 'h', gocui.ModNone, setCurrentViewCallback("tasks")},
+		{"details", gocui.KeyEsc, gocui.ModNone, setCurrentViewCallback("tasks")},
 		{"details", gocui.KeyArrowDown, gocui.ModNone, cursorDown},
 		{"details", 'j', gocui.ModNone, cursorDown},
 		{"details", gocui.KeyArrowUp, gocui.ModNone, cursorUp},
 		{"details", 'k', gocui.ModNone, cursorUp},
+		{"details", 'h', gocui.ModNone, detailsLeft},
+		{"details", gocui.KeyArrowLeft, gocui.ModNone, detailsLeft},
+		{"details", 'l', gocui.ModNone, detailsRight},
+		{"details", gocui.KeyArrowRight, gocui.ModNone, detailsRight},
 		{"details", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { searchQuery = ""; return loadTasks() }},
 		{"tasks", 'y', gocui.ModNone, copyLine},
 		{"tasks", gocui.KeyTab, gocui.ModNone, showDetails},
@@ -325,4 +347,116 @@ func showDetails(g *gocui.Gui, v *gocui.View) error {
 		return err
 	}
 	return detailsView.SetCursor(0, 0)
+}
+
+// detailsFprintfLine is a helper function that prints a line to the details view, while
+// also handling search query highlighting and selection highlighting.
+func detailsFprintfLine(v *gocui.View, cx, cy *int, showSelection bool, format string, a ...any) {
+	line := fmt.Sprintf(format, a...)
+	y := v.LinesHeight() // Line numbers start at 1
+	if y == 0 {
+		y = 1
+	}
+	y -= 1 // Convert to 0-based index
+	if searchQuery != "" {
+		re := regexp.MustCompile("(?i)" + searchQuery)
+		line = re.ReplaceAllStringFunc(line, func(match string) string {
+			return fmt.Sprintf("\x1b[43m%s\x1b[40m", match)
+		})
+	}
+	if y == *cy && showSelection {
+		currentDetailLine = line
+		// Find the Bold ANSI escape code in the line after cx and change its color to have a cyan background
+		re := regexp.MustCompile(`\x1b\[1;(\d+)m`)
+		locs := re.FindAllStringIndex(line, -1)
+		for i, loc := range locs {
+			if loc[0] > *cx || i == len(locs)-1 {
+				linePrefix := line[:loc[0]]
+				linePrefixClean := allANSIRegex.ReplaceAllString(linePrefix, "")
+				if len(linePrefixClean) < *cx && i != len(locs)-1 {
+					continue
+				}
+				*cx = len(linePrefixClean)
+				line = linePrefix + "\x1b[46;30m" + line[loc[1]:]
+				// From `loc[1]` to `first \x1b[0m after loc[1]` or the `end of the line`
+				detailEnd := strings.Index(line[loc[1]:], "\x1b[0m")
+				if detailEnd == -1 {
+					detailEnd = len(line)
+				} else {
+					detailEnd += loc[1]
+				}
+				currentDetail = line[loc[1]+1 : detailEnd]
+				break
+			}
+		}
+		if locs == nil {
+			currentDetail = line
+			line += "\x1b[46m \x1b[0m"
+		}
+		currentDetail = strings.TrimSpace(allANSIRegex.ReplaceAllString(currentDetail, ""))
+		fmt.Fprintf(v, "%s\n", line)
+	} else {
+		fmt.Fprintf(v, "%s\n", line)
+	}
+}
+
+func detailsFprintf(v *gocui.View, cx, cy *int, showSelection bool, format string, a ...any) {
+	text := fmt.Sprintf(format, a...)
+	lines := strings.SplitSeq(text, "\n")
+	for line := range lines {
+		if line == "" {
+			continue
+		}
+		detailsFprintfLine(v, cx, cy, showSelection, "%s", line)
+	}
+}
+
+// Yank the currently selected detail line to the clipboard, without ANSI escape codes
+func copyDetail(g *gocui.Gui, v *gocui.View) error {
+	if currentDetail != "" {
+		if err := clipboard.Init(); err != nil {
+			return err
+		}
+		clipboard.Write(clipboard.FmtText, []byte(currentDetail))
+	}
+	// TODO: After the Console view is added, show a message in the console view that the detail has been copied to the clipboard.
+	return nil
+}
+
+// Move the cursor in the details view to the left, jumping over ANSI escape codes
+// If the cursor is at the beginning of the line, move it to the tasks view
+func detailsLeft(g *gocui.Gui, v *gocui.View) error {
+	cx, cy := v.Cursor()
+	if cx == 0 {
+		return nil
+	}
+	// Find the first Bold ANSI escape code before cx and move the cursor to it
+	re := regexp.MustCompile(`\x1b\[1;3[0-9]+m`)
+	locs := re.FindAllStringIndex(currentDetailLine, -1)
+	for i := len(locs) - 1; i >= 0; i-- {
+		cleanPrefix := allANSIRegex.ReplaceAllString(currentDetailLine[:locs[i][0]], "")
+		if len(cleanPrefix) < cx {
+			return v.SetCursor(len(cleanPrefix)-1, cy)
+		}
+	}
+	_, err := g.SetCurrentView("tasks")
+	return err
+}
+
+// Move the cursor in the details view to the right, jumping over ANSI escape codes
+func detailsRight(g *gocui.Gui, v *gocui.View) error {
+	cx, cy := v.Cursor()
+	// Find the first Bold ANSI escape code after cx and move the cursor to it
+	re := regexp.MustCompile(`\x1b\[1;3[0-9]+m`)
+	locs := re.FindAllStringIndex(currentDetailLine, -1)
+	for _, loc := range locs {
+		cleanPrefix := allANSIRegex.ReplaceAllString(currentDetailLine[:loc[0]], "")
+		if loc[0] > cx {
+			if len(cleanPrefix) <= cx {
+				continue
+			}
+			return v.SetCursor(len(cleanPrefix)-1, cy)
+		}
+	}
+	return nil
 }

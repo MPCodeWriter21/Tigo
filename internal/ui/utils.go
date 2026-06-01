@@ -82,16 +82,17 @@ func setCurrentViewCallback(name string) func(*gocui.Gui, *gocui.View) error {
 
 // Works the same as fmt.Fprintf, except if searchQuery is set, it highlights the matching text in the view.
 func searchedFprintf(v *gocui.View, format string, a ...any) {
+	// FIXME: Some queries match the already existing ANSI escape codes, which causes
+	// the highlighting to break. For example, searching for "43m" will match the yellow
+	// background code and break the highlighting.
 	line := fmt.Sprintf(format, a...)
 	if searchQuery != "" {
 		re := regexp.MustCompile("(?i)" + searchQuery)
-		highlighted := re.ReplaceAllStringFunc(line, func(match string) string {
+		line = re.ReplaceAllStringFunc(line, func(match string) string {
 			return fmt.Sprintf("\x1b[43m%s\x1b[40m", match) // Highlight with yellow background
 		})
-		fmt.Fprint(v, highlighted)
-	} else {
-		fmt.Fprint(v, line)
 	}
+	fmt.Fprint(v, line)
 }
 
 // Prints the formatted string centered in the view. Returns the number of padding spaces added on each side.
