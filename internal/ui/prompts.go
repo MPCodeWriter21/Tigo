@@ -308,29 +308,42 @@ func submitDeleteTask(g *gocui.Gui, v *gocui.View) error {
 	return updateViews(g)
 }
 
-func promptSearch(g *gocui.Gui, v *gocui.View) error {
+func promptSearch(g *gocui.Gui, _ *gocui.View) error {
 	maxX, maxY := g.Size()
-	g.Cursor = true
-	if v, err := g.SetView("search", 0, maxY-4, maxX/3-1, maxY-2, 0); err != nil {
+	v, err := g.SetView("search", 0, maxY-4, maxX/3-1, maxY-2, 0)
+	if err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		v.Title = "/"
-		v.Wrap = true
-		v.Editable = true
-		g.SetKeybinding("search", gocui.KeyEsc, gocui.ModNone, deleteViewDefault)
-		g.SetKeybinding("search", gocui.KeyEnter, gocui.ModNone, submitSearch)
-		g.SetKeybinding("search", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-			if searchQuery != "" {
-				v.Clear()
-				fmt.Fprint(v, searchQuery)
-				v.SetCursor(len(searchQuery), 0)
-			}
-			return nil
-		})
 	}
+	g.Cursor = true
+	v.Title = "/"
+	v.Wrap = true
+	v.Editable = true
+	g.SetKeybinding("search", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		if searchQuery == "" {
+			return deleteViewDefault(g, v)
+		}
+		v.Clear()
+		fmt.Fprint(v, searchQuery)
+		v.SetCursor(len(searchQuery), 0)
+		g.Cursor = false
+		if _, err := g.SetCurrentView("tasks"); err != nil {
+			return err
+		}
+		return loadTasks()
+	})
+	g.SetKeybinding("search", gocui.KeyEnter, gocui.ModNone, submitSearch)
+	g.SetKeybinding("search", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		if searchQuery != "" {
+			v.Clear()
+			fmt.Fprint(v, searchQuery)
+			v.SetCursor(len(searchQuery), 0)
+		}
+		return nil
+	})
 
-	_, err := g.SetCurrentView("search")
+	_, err = g.SetCurrentView("search")
 	return err
 }
 
