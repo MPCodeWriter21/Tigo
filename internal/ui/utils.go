@@ -86,8 +86,8 @@ func searchedFprintf(v *gocui.View, format string, a ...any) {
 	// the highlighting to break. For example, searching for "43m" will match the yellow
 	// background code and break the highlighting.
 	line := fmt.Sprintf(format, a...)
-	if searchQuery != "" {
-		re := regexp.MustCompile("(?i)" + searchQuery)
+	if searchQuery.value != "" {
+		re := regexp.MustCompile("(?i)" + searchQuery.value)
 		line = re.ReplaceAllStringFunc(line, func(match string) string {
 			return fmt.Sprintf("\x1b[43m%s\x1b[40m", match) // Highlight with yellow background
 		})

@@ -323,12 +323,12 @@ func promptSearch(g *gocui.Gui, _ *gocui.View) error {
 	v.Editable = true
 	v.Editor = gocui.EditorFunc(oneLineEditor)
 	g.SetKeybinding("search", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		if searchQuery == "" {
+		if searchQuery.value == "" {
 			return deleteViewDefault(g, v)
 		}
 		v.Clear()
 		fmt.Fprint(v, searchQuery)
-		v.SetCursor(len(searchQuery), 0)
+		v.SetCursor(len(searchQuery.value), 0)
 		g.Cursor = false
 		if _, err := g.SetCurrentView("tasks"); err != nil {
 			return err
@@ -337,10 +337,10 @@ func promptSearch(g *gocui.Gui, _ *gocui.View) error {
 	})
 	g.SetKeybinding("search", gocui.KeyEnter, gocui.ModNone, submitSearch)
 	g.SetKeybinding("search", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		if searchQuery != "" {
+		if searchQuery.value != "" {
 			v.Clear()
 			fmt.Fprint(v, searchQuery)
-			v.SetCursor(len(searchQuery), 0)
+			v.SetCursor(len(searchQuery.value), 0)
 		}
 		return nil
 	})
@@ -354,7 +354,10 @@ func submitSearch(g *gocui.Gui, v *gocui.View) error {
 	v.Clear()
 	fmt.Fprint(v, query)
 	v.SetCursor(len(query), 0)
-	searchQuery = query
+	searchQuery = searchQueryType{
+		type_: normalQuery,
+		value: query,
+	}
 	g.DeleteKeybindings(v.Name())
 	g.Cursor = false
 
