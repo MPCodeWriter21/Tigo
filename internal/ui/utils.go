@@ -2,7 +2,10 @@ package ui
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"tigo/pkg/db"
@@ -189,4 +192,28 @@ func oneLineEditor(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
 	default:
 		v.EditWrite(ch)
 	}
+}
+
+// Opens the file at the given path with the default application. Returns an error if it fails.
+func openFile(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return os.ErrNotExist
+	}
+
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", path)
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", "", path)
+	default: // linux, freebsd, etc.
+		// Try common launchers in order
+		for _, launcher := range []string{"xdg-open", "gio", "gnome-open", "kde-open", "exo-open", "mimeopen", "termux-open"} {
+			if _, err := exec.LookPath(launcher); err == nil {
+				return exec.Command(launcher, path).Start()
+			}
+		}
+		return fmt.Errorf("no suitable open command found; install xdg-utils or a desktop environment")
+	}
+	return cmd.Start()
 }

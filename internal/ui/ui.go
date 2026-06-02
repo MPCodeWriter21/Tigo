@@ -3,6 +3,7 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -23,7 +24,7 @@ var (
 	selectedTask  int    = 0
 	searchQuery   searchQueryType
 	currentDetail detail
-	detailsRegEx  = regexp.MustCompile(`(?:\x1b\[(1;[0-9]+)m)|(?:\x1b\[(34;4)m)|(?:\x1b\[(33;4)m)`)
+	detailsRegEx  = regexp.MustCompile(`(?:\x1b\[(1;[0-9]+)m)|(?:\x1b\[(3[2-4];4)m)`)
 	allANSIRegex  = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 )
 
@@ -40,6 +41,7 @@ const (
 	normalDetail detailType = iota
 	taskIDDetail
 	tagDetail
+	filePathDetail
 )
 
 type detail struct {
@@ -333,6 +335,7 @@ func initKeybindings(g *gocui.Gui) error {
 		{"", gocui.KeyCtrlC, gocui.ModNone, quit},
 		{"", 'q', gocui.ModNone, quit},
 		{"", '/', gocui.ModNone, promptSearch},
+		{"", 'o', gocui.ModNone, openSelectedDirectory},
 		{"details", 'y', gocui.ModNone, copyDetail},
 		{"details", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("tasks")},
 		{"details", gocui.KeyEsc, gocui.ModNone, setCurrentViewCallback("tasks")},
@@ -431,6 +434,9 @@ func highlight(cx *int, line string) string {
 			case "\x1b[33;4m":
 				highlightColor = "\x1b[44;33;4m"
 				currentDetailType = tagDetail
+			case "\x1b[32;4m":
+				highlightColor = "\x1b[44;32;4m"
+				currentDetailType = filePathDetail
 			default:
 				highlightColor = "\x1b[46;30m"
 				currentDetailType = normalDetail
@@ -477,6 +483,14 @@ func detailsFprintfLine(v *gocui.View, cx, cy *int, showSelection bool, format s
 	re := regexp.MustCompile(`(?i)TASK\([0-9]{8}-[0-9]{6}\)`)
 	line = re.ReplaceAllStringFunc(line, func(match string) string {
 		return fmt.Sprintf("\x1b[34;4m%s\x1b[0m", match)
+	})
+
+	// Highlight file path pattern with green foreground and underline
+	// E.g. `./path/to/file` or `../path/to/file`
+	// These paths are relative to the current tasks's directory
+	re = regexp.MustCompile(`(?i)(?:\.\.?\/)(?:[\w\-]+\/)*[\w\-]+\.\w+`)
+	line = re.ReplaceAllStringFunc(line, func(match string) string {
+		return fmt.Sprintf("\x1b[32;4m%s\x1b[0m", match)
 	})
 
 	if y == *cy && showSelection {
@@ -560,6 +574,8 @@ func detailsRight(g *gocui.Gui, v *gocui.View) error {
 // Follow the hyperlink if the cursor is on a hyperlink, otherwise do nothing.
 func followDetail(g *gocui.Gui, v *gocui.View) error {
 	switch currentDetail.type_ {
+	case normalDetail:
+		return nil
 	case taskIDDetail:
 		re := regexp.MustCompile(`[0-9]{8}-[0-9]{6}`)
 		taskID := re.FindString(currentDetail.value)
@@ -593,6 +609,25 @@ func followDetail(g *gocui.Gui, v *gocui.View) error {
 		fmt.Fprint(searchView, tag)
 		g.SetCurrentView("tasks")
 		return loadTasks()
+	case filePathDetail:
+		// The file path is relative to the current task's directory, so we need to get the current task's directory and join it with the file path.
+		currentTask := tasks[selectedTask]
+		taskDir := filepath.Join(tigoRoot, currentTask.ID)
+		filePath := filepath.Join(taskDir, currentDetail.value)
+		err := openFile(filePath)
+		if err == os.ErrNotExist {
+			return promptErrorMessage(g, "File Not Found", fmt.Sprintf("File \x1b[34m`%s`\x1b[31m was not found!", filePath), "details", false)
+		}
+		return err
 	}
-	return nil
+	return fmt.Errorf("invalid detail type: %v", currentDetail.type_)
+}
+
+func openSelectedDirectory(g *gocui.Gui, v *gocui.View) error {
+	if len(tasks) == 0 {
+		return nil
+	}
+	currentTask := tasks[selectedTask]
+	taskDir := filepath.Join(tigoRoot, currentTask.ID)
+	return openFile(taskDir)
 }

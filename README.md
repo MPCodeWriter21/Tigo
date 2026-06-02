@@ -50,6 +50,7 @@ use $HOME/.local/share/tigo.
 - `/`: Search tasks by title, description or tags (supports RegEx)
 - `s`: Sort tasks by priority, ID or title
 - `y`: Yank (copy) the selected task's content to the clipboard
+- `o`: Open the tasks containing directory in the file explorer
 - `<space>`: Toggle task status (OPEN/CLOSED) / Follow hyperlink
 - `<tab>`: Switch between different views (e.g., task list, task details)
 - `<enter>`: Submit dialogs
