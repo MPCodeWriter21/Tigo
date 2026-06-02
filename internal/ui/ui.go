@@ -26,6 +26,9 @@ var (
 	currentDetail detail
 	detailsRegEx  = regexp.MustCompile(`(?:\x1b\[(1;[0-9]+)m)|(?:\x1b\[(3[2-4];4)m)`)
 	allANSIRegex  = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	taskRegEx     = regexp.MustCompile(`(?i)TASK\([0-9]{8}-[0-9]{6}\)`)
+	filePathRegEx = regexp.MustCompile(`(?:(?P<relative>\.\.?\/)(?P<path>[\w\-\/\.]+))`)
+	URLRegEx      = regexp.MustCompile(`(?:(?P<protocol>[a-z\-]+):\/\/(?P<hostname>[-a-zA-Z0-9]+(?:\.[-a-zA-Z0-9]+)+)(?P<port>:[0-9]+)?(?P<path>(?:\/[-a-zA-Z0-9()@:%_\+.~#?&=!]*)*))`)
 )
 
 type keybinding struct {
@@ -42,6 +45,7 @@ const (
 	taskIDDetail
 	tagDetail
 	filePathDetail
+	urlDetail
 )
 
 type detail struct {
@@ -423,24 +427,6 @@ func highlight(cx *int, line string) string {
 			}
 			*cx = len(linePrefixClean)
 			originalColor := line[loc[0]:loc[1]]
-			var (
-				highlightColor    string
-				currentDetailType detailType
-			)
-			switch originalColor {
-			case "\x1b[34;4m":
-				highlightColor = "\x1b[44;37;4m"
-				currentDetailType = taskIDDetail
-			case "\x1b[33;4m":
-				highlightColor = "\x1b[44;33;4m"
-				currentDetailType = tagDetail
-			case "\x1b[32;4m":
-				highlightColor = "\x1b[44;32;4m"
-				currentDetailType = filePathDetail
-			default:
-				highlightColor = "\x1b[46;30m"
-				currentDetailType = normalDetail
-			}
 
 			// From `loc[1]` to `first \x1b[0m after loc[1]` or the `end of the line`
 			detailEnd := strings.Index(line[loc[1]:], "\x1b[0m")
@@ -450,9 +436,35 @@ func highlight(cx *int, line string) string {
 				detailEnd += loc[1]
 			}
 
+			var (
+				highlightColor     string
+				currentDetailType  detailType
+				currentDetailValue = allANSIRegex.ReplaceAllString(line[loc[1]:detailEnd], "")
+			)
+			switch originalColor {
+			case "\x1b[34;4m": // TASK(ID) or URL
+				highlightColor = "\x1b[44;37;4m"
+				if taskRegEx.MatchString(currentDetailValue) {
+					currentDetailType = taskIDDetail
+				} else if URLRegEx.MatchString(currentDetailValue) {
+					currentDetailType = urlDetail
+				} else {
+					panic(fmt.Sprintf("invalid hyperlink format: %s", currentDetailValue))
+				}
+			case "\x1b[33;4m": // tag
+				highlightColor = "\x1b[44;33;4m"
+				currentDetailType = tagDetail
+			case "\x1b[32;4m": // file path
+				highlightColor = "\x1b[44;32;4m"
+				currentDetailType = filePathDetail
+			default: // normal detail
+				highlightColor = "\x1b[46;30m"
+				currentDetailType = normalDetail
+			}
+
 			currentDetail = detail{
 				type_:      currentDetailType,
-				value:      line[loc[1]:detailEnd],
+				value:      currentDetailValue,
 				detailLine: line,
 			}
 
@@ -480,16 +492,18 @@ func detailsFprintfLine(v *gocui.View, cx, cy *int, showSelection bool, format s
 	}
 
 	// Highlight TASK(ID) pattern with blue foreground and underline
-	re := regexp.MustCompile(`(?i)TASK\([0-9]{8}-[0-9]{6}\)`)
-	line = re.ReplaceAllStringFunc(line, func(match string) string {
+	line = taskRegEx.ReplaceAllStringFunc(line, func(match string) string {
+		return fmt.Sprintf("\x1b[34;4m%s\x1b[0m", match)
+	})
+	// URLs are highlighted the same way
+	line = URLRegEx.ReplaceAllStringFunc(line, func(match string) string {
 		return fmt.Sprintf("\x1b[34;4m%s\x1b[0m", match)
 	})
 
-	// Highlight file path pattern with green foreground and underline
+	// Highlight file path patterns with green foreground and underline
 	// E.g. `./path/to/file` or `../path/to/file`
 	// These paths are relative to the current tasks's directory
-	re = regexp.MustCompile(`(?i)(?:\.\.?\/)(?:[\w\-]+\/)*[\w\-]+\.\w+`)
-	line = re.ReplaceAllStringFunc(line, func(match string) string {
+	line = filePathRegEx.ReplaceAllStringFunc(line, func(match string) string {
 		return fmt.Sprintf("\x1b[32;4m%s\x1b[0m", match)
 	})
 
@@ -619,6 +633,8 @@ func followDetail(g *gocui.Gui, v *gocui.View) error {
 			return promptErrorMessage(g, "File Not Found", fmt.Sprintf("File \x1b[34m`%s`\x1b[31m was not found!", filePath), "details", false)
 		}
 		return err
+	case urlDetail:
+		return openFile(currentDetail.value)
 	}
 	return fmt.Errorf("invalid detail type: %v", currentDetail.type_)
 }
