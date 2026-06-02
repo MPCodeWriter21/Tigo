@@ -108,6 +108,15 @@ func loadTasks() error {
 	for _, id := range taskIDs {
 		t, err := task.Parse(id, filepath.Join(tigoRoot, id, "TASK.md"))
 		if err == nil {
+			// If the search query is a task id, show the task no matter what
+			if regexp.MustCompile("[0-9]{8}-[0-9]{6}").MatchString(searchQuery.value) {
+				idMatched, err := regexp.MatchString("(?i)"+searchQuery.value, t.ID)
+				if err == nil && idMatched {
+					tasks = append(tasks, t)
+					continue
+				}
+			}
+
 			if !showClosed && t.Status == "CLOSED" {
 				continue
 			}
