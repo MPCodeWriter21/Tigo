@@ -6,7 +6,9 @@ import (
 	"os/exec"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
+	"time"
 
 	"tigo/pkg/db"
 
@@ -218,4 +220,108 @@ func openFile(path string) error {
 		return fmt.Errorf("no suitable open command found; install xdg-utils or a desktop environment")
 	}
 	return cmd.Start()
+}
+
+// parseRelativeDateTime takes a string like:
+//   - "tomorrow" -> current time + 1 day
+//   - "next week" -> current time + 1 week
+//   - "next month" -> current time + 1 month
+//   - "30 seconds" -> current time + 30 seconds
+//   - "5 minutes" -> current time + 5 minutes
+//   - "2 hours" -> current time + 2 hours
+//   - "3 days" -> current time + 3 days
+//   - "1 week" -> current time + 1 week
+//   - "2 months" -> current time + 2 months
+//   - "3 seasons" -> current time + 3 * 3 months
+//   - "1 year" -> current time + 1 year
+//   - "next decade" -> current time + 10 years
+//   - "next century" -> current time + 100 years
+func parseRelativeDateTime(input string) (string, error) {
+	input = strings.TrimSpace(strings.ToLower(input))
+	now := time.Now()
+
+	if input == "today" {
+		return now.Format("2006-01-02"), nil
+	}
+	if input == "tonight" {
+		// Set the time to 23:59:59 to represent the end of the day
+		return time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location()).Format("2006-01-02 15:04:05"), nil
+	}
+	if input == "tomorrow" {
+		return now.AddDate(0, 0, 1).Format("2006-01-02"), nil
+	}
+
+	var seconds, minutes, hours, days, months, years int
+	re := regexp.MustCompile(`^next \s*(second|minute|hour|day|week|month|season|year)s?$`)
+	if re.MatchString(input) {
+		input = re.ReplaceAllString(input, "next $1")
+		switch input {
+		case "next second":
+			seconds = 1
+		case "next minute":
+			minutes = 1
+		case "next hour":
+			hours = 1
+		case "next day":
+			days = 1
+		case "next week":
+			days = 7
+		case "next month":
+			months = 1
+		case "next season":
+			months = 3
+		case "next year":
+			years = 1
+		case "next decade":
+			years = 10
+		case "next century":
+			years = 100
+		}
+		if seconds == 0 && minutes == 0 && hours == 0 {
+			return now.AddDate(years, months, days).Format("2006-01-02"), nil
+		} else {
+			return now.
+				AddDate(years, months, days).
+				Add(time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second).
+				Format("2006-01-02 15:04:05"), nil
+		}
+	}
+
+	re = regexp.MustCompile(`^([0-9]+)\s*(second|minute|hour|day|week|month|season|year)s?$`)
+	matches := re.FindStringSubmatch(input)
+	if len(matches) != 3 {
+		return "", fmt.Errorf("invalid relative date format")
+	}
+	value := matches[1]
+	unit := matches[2]
+
+	switch unit {
+	case "second":
+		seconds, _ = strconv.Atoi(value)
+	case "minute":
+		minutes, _ = strconv.Atoi(value)
+	case "hour":
+		hours, _ = strconv.Atoi(value)
+	case "day":
+		days, _ = strconv.Atoi(value)
+	case "week":
+		days, _ = strconv.Atoi(value)
+		days *= 7
+	case "month":
+		months, _ = strconv.Atoi(value)
+	case "season":
+		months, _ = strconv.Atoi(value)
+		months *= 3
+	case "year":
+		years, _ = strconv.Atoi(value)
+	}
+
+	if seconds == 0 && minutes == 0 && hours == 0 {
+		return now.AddDate(years, months, days).Format("2006-01-02"), nil
+	} else {
+		return now.
+			AddDate(years, months, days).
+			Add(time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second).
+			Format("2006-01-02 15:04:05"), nil
+	}
 }

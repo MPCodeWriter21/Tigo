@@ -239,17 +239,27 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 
 		// Validate due date before proceeding
 		if dueDate != "" {
+			parsedRelativeDate, errRelative := parseRelativeDateTime(dueDate)
 			_, errDateOnly := time.Parse("2006-01-02", dueDate)
 			_, errDateTime := time.Parse("2006-01-02 15:04", dueDate)
 			_, errDateTimeFull := time.Parse("2006-01-02 15:04:05", dueDate)
 
-			if errDateOnly != nil && errDateTime != nil && errDateTimeFull != nil {
-				err := promptErrorMessage(g, "Invalid Due Date", "Due date must be in YYYY-MM-DD or YYYY-MM-DD HH:MM format, or empty!", "taskDialogDueDate", true)
+			if errDateOnly != nil && errDateTime != nil && errDateTimeFull != nil && errRelative != nil {
+				err := promptErrorMessage(
+					g, "Invalid Due Date",
+					"Unsupported date format! Valid examples:\n"+
+						"\t- Absolute: 2024-12-31, 2024-12-31 23:59, 2024-12-31 23:59:59\n"+
+						"\t- Relative: today, tonight, tomorrow, next week, 1 month, 3 days, 2 weeks, etc.\n"+
+						"\t- Empty due date means no due date",
+					"taskDialogDueDate", true)
 				if err != nil {
 					return err
 				}
 				// Return nil to abort the submission and prevent the dialog from closing
 				return nil
+			}
+			if errRelative == nil {
+				dueDate = parsedRelativeDate
 			}
 		}
 
@@ -473,8 +483,12 @@ func submitSort(g *gocui.Gui, v *gocui.View) error {
 
 func promptErrorMessage(g *gocui.Gui, title, message, focusView string, focusCursor bool) error {
 	maxX, maxY := g.Size()
-	width := len(message) + 4
-	height := strings.Count(message, "\n") + 2
+	width := 0
+	height := 1
+	for line := range strings.SplitSeq(message, "\n") {
+		width = max(width, len(line)+4)
+		height++
+	}
 	x0 := maxX/2 - width/2
 	y0 := maxY/2 - height/2
 	if v, err := g.SetView("errorMessage", x0, y0, x0+width, y0+height, 0); err != nil {
