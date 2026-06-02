@@ -370,6 +370,7 @@ func initKeybindings(g *gocui.Gui) error {
 		{"tasks", gocui.KeyArrowUp, gocui.ModNone, tasksUp},
 		{"tasks", 'k', gocui.ModNone, tasksUp},
 		{"tasks", gocui.KeySpace, gocui.ModNone, toggleTaskStatus},
+		{"tasks", 'a', gocui.ModNone, promptCreateTask},
 		{"tasks", 'n', gocui.ModNone, promptCreateTask},
 		{"tasks", 'e', gocui.ModNone, promptEditTask},
 		{"tasks", 'd', gocui.ModNone, promptDeleteTask},
