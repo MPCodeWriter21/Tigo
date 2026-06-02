@@ -168,6 +168,9 @@ func _promptTask(
 			}
 			return printPriority()
 		})
+		// Make sure global keybindings don't interfere when priority view is focused
+		g.SetKeybinding("taskDialogPriority", '/', gocui.ModNone, doNothing)
+		g.SetKeybinding("taskDialogPriority", 'o', gocui.ModNone, doNothing)
 	}
 	if v, err := g.SetView("taskDialogDueDate", x0+widthTitle, y0+heightPriority, x0+widthTitle+widthPriority-1, y0+heightPriority+heightDueDate-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {

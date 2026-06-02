@@ -14,6 +14,8 @@ import (
 	"golang.design/x/clipboard"
 )
 
+func doNothing(g *gocui.Gui, v *gocui.View) error { return nil }
+
 func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
