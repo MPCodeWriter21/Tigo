@@ -155,6 +155,16 @@ func loadTasks() error {
 			// Higher priority tasks should come first, so we use > instead of <.
 			return tasks[i].Priority > tasks[j].Priority
 		})
+	case "dueDate":
+		sort.Slice(tasks, func(i, j int) bool {
+			if tasks[i].DueDate == "" {
+				return false
+			}
+			if tasks[j].DueDate == "" {
+				return true
+			}
+			return tasks[i].DueDate < tasks[j].DueDate
+		})
 	case "title":
 		sort.Slice(tasks, func(i, j int) bool {
 			return tasks[i].Title < tasks[j].Title

@@ -419,7 +419,7 @@ func submitSearch(g *gocui.Gui, v *gocui.View) error {
 func promptSort(g *gocui.Gui, v *gocui.View) error {
 	maxX, maxY := g.Size()
 	width := maxX / 2
-	height := 4
+	height := 5
 	x0 := maxX/2 - width/2
 	y0 := maxY/2 - height/2
 	if v, err := g.SetView("sort", x0, y0, x0+width, y0+height, 0); err != nil {
@@ -431,7 +431,8 @@ func promptSort(g *gocui.Gui, v *gocui.View) error {
 		v.SetCursor(0, 0)
 		centeredFprintf(v, "1. Task ID \n")
 		centeredFprintf(v, "2. Priority\n")
-		centeredFprintf(v, "3. Title   \n")
+		centeredFprintf(v, "3. Due Date\n")
+		centeredFprintf(v, "4. Title   \n")
 		g.SetKeybinding("sort", gocui.KeyEsc, gocui.ModNone, deleteViewDefault)
 		g.SetKeybinding("sort", gocui.KeyEnter, gocui.ModNone, submitSort)
 		g.SetKeybinding("sort", gocui.KeyArrowDown, gocui.ModNone, cursorDown)
@@ -441,6 +442,7 @@ func promptSort(g *gocui.Gui, v *gocui.View) error {
 		g.SetKeybinding("sort", '1', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { v.SetCursor(0, 0); return submitSort(g, v) })
 		g.SetKeybinding("sort", '2', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { v.SetCursor(0, 1); return submitSort(g, v) })
 		g.SetKeybinding("sort", '3', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { v.SetCursor(0, 2); return submitSort(g, v) })
+		g.SetKeybinding("sort", '4', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { v.SetCursor(0, 3); return submitSort(g, v) })
 	}
 	_, err := g.SetCurrentView("sort")
 	return err
@@ -454,6 +456,8 @@ func submitSort(g *gocui.Gui, v *gocui.View) error {
 	case 1:
 		sortBy = "priority"
 	case 2:
+		sortBy = "dueDate"
+	case 3:
 		sortBy = "title"
 	default:
 		return fmt.Errorf("selection out of range: %d", cy)
