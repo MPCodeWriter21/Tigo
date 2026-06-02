@@ -51,6 +51,7 @@ use $HOME/.local/share/tigo.
 - `s`: Sort tasks by priority, due date, ID or title
 - `y`: Yank (copy) the selected task's content to the clipboard
 - `o`: Open the tasks containing directory in the file explorer
+- `r`: Refresh the task list (useful if tasks are modified outside Tigo)
 - `<space>`: Toggle task status (OPEN/CLOSED) / Follow hyperlink
 - `<tab>`: Switch between different views (e.g., task list, task details)
 - `<enter>`: Submit dialogs

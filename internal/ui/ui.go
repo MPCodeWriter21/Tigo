@@ -388,6 +388,7 @@ func initKeybindings(g *gocui.Gui) error {
 		{"tasks", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selectedTask = 0; return updateViews(g) }},
 		{"tasks", 'G', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selectedTask = len(tasks) - 1; return updateViews(g) }},
 		{"tasks", 'H', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { showClosed = !showClosed; return loadTasks() }},
+		{"tasks", 'r', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return loadTasks() }},
 		{"tasks", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 			searchQuery.value = ""
 			g.DeleteView("search")
