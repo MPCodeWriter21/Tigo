@@ -7,7 +7,7 @@ Features
 --------
 
 - **Store Tasks Locally**: Keeps tasks as `TASK.md` files within structured
-  directories (YYYYMMDD-HHMMSS).
+  directories (YYYYMMDD-HHmmss).
 - **TUI interface**: Uses `wesome-gocui/gocui` for a responsive and intuitive layout.
 - **Git Integration**: Your tasks can be easily version controlled, and Tigo includes
   wrappers to interact with git.
