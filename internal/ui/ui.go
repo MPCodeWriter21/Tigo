@@ -574,9 +574,6 @@ func copyDetail(g *gocui.Gui, v *gocui.View) error {
 // If the cursor is at the beginning of the line, move it to the tasks view
 func detailsLeft(g *gocui.Gui, v *gocui.View) error {
 	cx, cy := v.Cursor()
-	if cx == 0 {
-		return nil
-	}
 	// Find the first Bold ANSI escape code before cx and move the cursor to it
 	locs := detailsRegEx.FindAllStringIndex(currentDetail.detailLine, -1)
 	for i := len(locs) - 1; i >= 0; i-- {
