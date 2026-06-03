@@ -20,7 +20,7 @@ Ensure you have [Go](https://go.dev/) installed.
 ```bash
 git clone https://github.com/MPCodeWriter21/Tigo.git
 cd Tigo
-go build -o tigo ./cmd/tigo
+go install ./cmd/tigo
 ```
 
 Usage
