@@ -9,7 +9,9 @@ import (
 	"tigo/pkg/db"
 )
 
-var version = "v0.1.0"
+// The value of `version` is supposed to be set using `-ldflags` during build time. If not set, it defaults to "dev".
+// `go build -ldflags="-X main.version=$(git rev-parse --short HEAD)" ./cmd/tigo` will set the `version` variable to the current git commit hash.
+var version = "dev"
 
 func main() {
 	helpFlag := flag.Bool("h", false, "Show the help")
@@ -34,7 +36,7 @@ func main() {
 	}
 
 	if *versionFlag || *versionLongFlag {
-		fmt.Printf("tigo version %s\n", version)
+		fmt.Printf("tigo-%s\n", version)
 		os.Exit(0)
 	}
 
