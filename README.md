@@ -46,7 +46,7 @@ use $HOME/.local/share/tigo.
 - `H`: Hide/show CLOSED tasks
 - `j` / `<arrow-down>`: Cursor down in the task list
 - `k` / `<arrow-up>`: Cursor up in the task list
-- `g` / `G`: Jump to the top/bottom of the task list
+- `g` / `G`: Jump to the top/bottom
 - `/`: Search tasks by title, description or tags (supports RegEx)
 - `s`: Sort tasks by priority, due date, ID or title
 - `y`: Yank (copy) the selected task's content to the clipboard

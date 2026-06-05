@@ -369,6 +369,8 @@ func initKeybindings(g *gocui.Gui) error {
 		{"details", 'h', gocui.ModNone, detailsLeft},
 		{"details", gocui.KeyArrowLeft, gocui.ModNone, detailsLeft},
 		{"details", 'l', gocui.ModNone, detailsRight},
+		{"details", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return v.SetCursor(0, 0) }},
+		{"details", 'G', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { h := v.LinesHeight(); return v.SetCursor(1, h-2) }},
 		{"details", gocui.KeyArrowRight, gocui.ModNone, detailsRight},
 		{"details", gocui.KeySpace, gocui.ModNone, followDetail},
 		{"details", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { searchQuery.value = ""; return loadTasks() }},
