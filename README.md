@@ -46,17 +46,20 @@ use $HOME/.local/share/tigo.
 - `H`: Hide/show CLOSED tasks
 - `j` / `<arrow-down>`: Cursor down in the task list
 - `k` / `<arrow-up>`: Cursor up in the task list
+- `h` / `<arrow-left>`: Move to the previous selectable item / focus tasks list
+- `l` / `<arrow-right>`: Move to the next selectable item
 - `g` / `G`: Jump to the top/bottom
 - `/`: Search tasks by title, description or tags (supports RegEx)
 - `s`: Sort tasks by priority, due date, ID or title
 - `y`: Yank (copy) the selected task's content to the clipboard
+- `Y`: Yank the whole current line
 - `o`: Open the tasks containing directory in the file explorer
 - `r`: Refresh the task list (useful if tasks are modified outside Tigo)
 - `` ` ``: Show the current Tigo directory
 - `<space>`: Toggle task status (OPEN/CLOSED) / Follow hyperlink
 - `<tab>`: Switch between different views (e.g., task list, task details)
-- `<enter>`: Submit dialogs
-- `<esc>`: Cancel dialogs / Clear search
+- `<enter>`: Submit dialogs / Go to the selected task's details
+- `<esc>`: Cancel dialogs / Clear search / Exit task details view
 
 Task Format
 -----------
