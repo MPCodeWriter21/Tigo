@@ -360,6 +360,7 @@ func initKeybindings(g *gocui.Gui) error {
 		{"", '/', gocui.ModNone, promptSearch},
 		{"", 'o', gocui.ModNone, openSelectedDirectory},
 		{"details", 'y', gocui.ModNone, copyDetail},
+		{"details", 'Y', gocui.ModNone, copyLine},
 		{"details", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("tasks")},
 		{"details", gocui.KeyEsc, gocui.ModNone, setCurrentViewCallback("tasks")},
 		{"details", gocui.KeyArrowDown, gocui.ModNone, cursorDown},
