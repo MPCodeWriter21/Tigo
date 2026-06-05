@@ -359,6 +359,7 @@ func initKeybindings(g *gocui.Gui) error {
 		{"", 'q', gocui.ModNone, quit},
 		{"", '/', gocui.ModNone, promptSearch},
 		{"", 'o', gocui.ModNone, openSelectedDirectory},
+		{"", '`', gocui.ModNone, showCurrentTigoDirectory},
 		{"details", 'y', gocui.ModNone, copyDetail},
 		{"details", 'Y', gocui.ModNone, copyLine},
 		{"details", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("tasks")},
@@ -622,7 +623,7 @@ func followDetail(g *gocui.Gui, v *gocui.View) error {
 		}
 		t, err := task.Parse(taskID, filepath.Join(tigoRoot, taskID, "TASK.md"))
 		if err != nil {
-			return promptErrorMessage(g, "Task Not Found", fmt.Sprintf("Task \x1b[34m`%s`\x1b[31m was not found!", taskID), "details", false)
+			return promptMessageBox(g, "Task Not Found", fmt.Sprintf("\x1b[31mTask \x1b[34m`%s`\x1b[31m was not found!", taskID), "details", false)
 		}
 		tasks = append(tasks, t)
 		selectedTask = len(tasks) - 1
@@ -651,7 +652,7 @@ func followDetail(g *gocui.Gui, v *gocui.View) error {
 		filePath := filepath.Join(taskDir, currentDetail.value)
 		err := openFile(filePath)
 		if err == os.ErrNotExist {
-			return promptErrorMessage(g, "File Not Found", fmt.Sprintf("File \x1b[34m`%s`\x1b[31m was not found!", filePath), "details", false)
+			return promptMessageBox(g, "File Not Found", fmt.Sprintf("\x1b[31mFile \x1b[34m`%s`\x1b[31m was not found!", filePath), "details", false)
 		}
 		return err
 	case urlDetail:

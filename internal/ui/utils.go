@@ -325,3 +325,7 @@ func parseRelativeDateTime(input string) (string, error) {
 			Format("2006-01-02 15:04:05"), nil
 	}
 }
+
+func showCurrentTigoDirectory(g *gocui.Gui, v *gocui.View) error {
+	return promptMessageBox(g, "Current Tigo Directory", tigoRoot, "tasks", false)
+}

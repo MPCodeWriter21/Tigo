@@ -22,7 +22,7 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 	return _promptTask(g,
 		func(title string, priority int, tags []string, dueDate string, description string) error {
 			if title == "" {
-				err := promptErrorMessage(g, "Empty Title", "A task's title cannot be empty string!", "taskDialogTitle", true)
+				err := promptMessageBox(g, "Empty Title", "\x1b[31mA task's title cannot be empty string!", "taskDialogTitle", true)
 				if err != nil {
 					return err
 				}
@@ -49,7 +49,7 @@ func promptEditTask(g *gocui.Gui, v *gocui.View) error {
 	return _promptTask(g,
 		func(title string, priority int, tags []string, dueDate string, description string) error {
 			if title == "" {
-				err := promptErrorMessage(g, "Empty Title", "A task's title cannot be empty string!", "taskDialogTitle", true)
+				err := promptMessageBox(g, "Empty Title", "\x1b[31mA task's title cannot be empty string!", "taskDialogTitle", true)
 				if err != nil {
 					return err
 				}
@@ -171,6 +171,7 @@ func _promptTask(
 		// Make sure global keybindings don't interfere when priority view is focused
 		g.SetKeybinding("taskDialogPriority", '/', gocui.ModNone, doNothing)
 		g.SetKeybinding("taskDialogPriority", 'o', gocui.ModNone, doNothing)
+		g.SetKeybinding("taskDialogPriority", '`', gocui.ModNone, doNothing)
 	}
 	if v, err := g.SetView("taskDialogDueDate", x0+widthTitle, y0+heightPriority, x0+widthTitle+widthPriority-1, y0+heightPriority+heightDueDate-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {
@@ -245,12 +246,12 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 			_, errDateTimeFull := time.Parse("2006-01-02 15:04:05", dueDate)
 
 			if errDateOnly != nil && errDateTime != nil && errDateTimeFull != nil && errRelative != nil {
-				err := promptErrorMessage(
+				err := promptMessageBox(
 					g, "Invalid Due Date",
-					"Unsupported date format! Valid examples:\n"+
-						"\t- Absolute: 2024-12-31, 2024-12-31 23:59, 2024-12-31 23:59:59\n"+
-						"\t- Relative: today, tonight, tomorrow, next week, 1 month, 3 days, 2 weeks, etc.\n"+
-						"\t- Empty due date means no due date",
+					"\x1b[31mUnsupported date format!\x1b[0m Valid examples:\n"+
+						"\t- \x1b[34mAbsolute\x1b[0m: 2024-12-31, 2024-12-31 23:59, 2024-12-31 23:59:59\n"+
+						"\t- \x1b[34mRelative\x1b[0m: today, tonight, tomorrow, next week, 1 month, 3 days, 2 weeks, etc.\n"+
+						"\t- \x1b[34mEmpty\x1b[0m due means no due date",
 					"taskDialogDueDate", true)
 				if err != nil {
 					return err
@@ -481,7 +482,7 @@ func submitSort(g *gocui.Gui, v *gocui.View) error {
 	return updateViews(g)
 }
 
-func promptErrorMessage(g *gocui.Gui, title, message, focusView string, focusCursor bool) error {
+func promptMessageBox(g *gocui.Gui, title, message, focusView string, focusCursor bool) error {
 	maxX, maxY := g.Size()
 	width := 0
 	height := 1
@@ -491,22 +492,21 @@ func promptErrorMessage(g *gocui.Gui, title, message, focusView string, focusCur
 	}
 	x0 := maxX/2 - width/2
 	y0 := maxY/2 - height/2
-	if v, err := g.SetView("errorMessage", x0, y0, x0+width, y0+height, 0); err != nil {
+	if v, err := g.SetView("messageBox", x0, y0, x0+width, y0+height, 0); err != nil {
 		g.Cursor = false
 		if err != gocui.ErrUnknownView {
 			return err
 		}
 		v.Title = title
-		v.FgColor = gocui.ColorRed
 		v.Editable = false
 		fmt.Fprint(v, message)
 		g.SetKeybinding(
-			"errorMessage", gocui.KeyEnter, gocui.ModNone,
+			"messageBox", gocui.KeyEnter, gocui.ModNone,
 			deleteViewAndSetCurrent(focusView, focusCursor))
 		g.SetKeybinding(
-			"errorMessage", gocui.KeyEsc, gocui.ModNone,
+			"messageBox", gocui.KeyEsc, gocui.ModNone,
 			deleteViewAndSetCurrent(focusView, focusCursor))
 	}
-	_, err := g.SetCurrentView("errorMessage")
+	_, err := g.SetCurrentView("messageBox")
 	return err
 }
