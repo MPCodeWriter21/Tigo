@@ -294,26 +294,26 @@ func updateViews(g *gocui.Gui) error {
 		t := tasks[selectedTask]
 		showSelection := g.CurrentView() == detailsView
 
-		detailsFprintf(detailsView, cx, cy, showSelection, "ID: \x1b[1;36m%s\x1b[0m\n", t.ID)
-		detailsFprintf(detailsView, cx, cy, showSelection, "Title: \x1b[1;32m%s\x1b[0m\n", t.Title)
+		detailsFprintf(detailsView, cx, cy, showSelection, "ID: \x1b[1;36m%s\x1b[0m", t.ID)
+		detailsFprintf(detailsView, cx, cy, showSelection, "Title: \x1b[1;32m%s\x1b[0m", t.Title)
 		switch t.Status {
 		case "OPEN":
-			detailsFprintf(detailsView, cx, cy, showSelection, "Status: \x1b[1;37mOPEN\x1b[0m\n")
+			detailsFprintf(detailsView, cx, cy, showSelection, "Status: \x1b[1;37mOPEN\x1b[0m")
 		case "CLOSED":
-			detailsFprintf(detailsView, cx, cy, showSelection, "Status: \x1b[1;32mCLOSED\x1b[0m\n")
+			detailsFprintf(detailsView, cx, cy, showSelection, "Status: \x1b[1;32mCLOSED\x1b[0m")
 		default:
-			detailsFprintf(detailsView, cx, cy, showSelection, "Status: \x1b[1;35m%s\x1b[0m\n", t.Status)
+			detailsFprintf(detailsView, cx, cy, showSelection, "Status: \x1b[1;35m%s\x1b[0m", t.Status)
 		}
-		detailsFprintf(detailsView, cx, cy, showSelection, "Priority: \x1b[1;34m%d\x1b[0m\n", t.Priority)
+		detailsFprintf(detailsView, cx, cy, showSelection, "Priority: \x1b[1;34m%d\x1b[0m", t.Priority)
 		if t.DueDate != "" {
-			detailsFprintf(detailsView, cx, cy, showSelection, "Due Date: \x1b[1;33m%s\x1b[0m\n", t.DueDate)
+			detailsFprintf(detailsView, cx, cy, showSelection, "Due Date: \x1b[1;33m%s\x1b[0m", t.DueDate)
 		}
 		tagsStr := ""
 		for _, tag := range t.Tags {
 			tagsStr = fmt.Sprintf("%s\x1b[33;4m%s\x1b[0m ", tagsStr, tag)
 		}
-		detailsFprintf(detailsView, cx, cy, showSelection, "Tags: %s\n", strings.TrimSpace(tagsStr))
-		detailsFprintf(detailsView, cx, cy, showSelection, "\nDescription:\n%s\n", t.Description)
+		detailsFprintf(detailsView, cx, cy, showSelection, "Tags: %s", strings.TrimSpace(tagsStr))
+		detailsFprintf(detailsView, cx, cy, showSelection, "\nDescription:\n%s", t.Description)
 	} else {
 		detailsView.FgColor = gocui.ColorRed
 		fmt.Fprintln(detailsView, "No task selected.")
@@ -555,9 +555,6 @@ func detailsFprintf(v *gocui.View, cx, cy *int, showSelection bool, format strin
 	text := fmt.Sprintf(format, a...)
 	lines := strings.SplitSeq(text, "\n")
 	for line := range lines {
-		if line == "" {
-			continue
-		}
 		detailsFprintfLine(v, cx, cy, showSelection, "%s", line)
 	}
 }
