@@ -9,19 +9,19 @@ import (
 	"sort"
 	"strings"
 
+	"tigo/internal/config"
 	"tigo/pkg/db"
 	"tigo/pkg/task"
 
-	"github.com/awesome-gocui/gocui"
 	"github.com/atotto/clipboard"
+	"github.com/awesome-gocui/gocui"
 )
 
 var (
 	tigoRoot      string
 	tasks         []*task.Task
-	sortBy        string = "id"
-	showClosed    bool   = false
-	selectedTask  int    = 0
+	selectedTask  int = 0
+	cfg           *config.TigoConfig
 	searchQuery   searchQueryType
 	currentDetail detail
 	detailsRegEx  = regexp.MustCompile(`(?:\x1b\[(1;[0-9]+)m)|(?:\x1b\[(3[2-4];4)m)`)
@@ -67,12 +67,13 @@ type searchQueryType struct {
 }
 
 // Run initializes and runs the GUI.
-func Run(root string) error {
+func Run(root string, conf *config.TigoConfig) error {
 	// Enter Alternate Screen Buffer (hide main terminal content)
 	fmt.Print("\x1b[?1049h")
 	defer fmt.Print("\x1b[?1049l")
 
 	tigoRoot = root
+	cfg = conf
 
 	g, err := gocui.NewGui(gocui.OutputNormal, true)
 	if err != nil {
@@ -117,7 +118,7 @@ func loadTasks() error {
 				}
 			}
 
-			if !showClosed && t.Status == "CLOSED" {
+			if !cfg.ShowClosed && t.Status == "CLOSED" {
 				continue
 			}
 			if searchQuery.value != "" {
@@ -145,7 +146,7 @@ func loadTasks() error {
 			tasks = append(tasks, t)
 		}
 	}
-	switch sortBy {
+	switch cfg.SortBy {
 	case "id":
 		sort.Slice(tasks, func(i, j int) bool {
 			return tasks[i].ID < tasks[j].ID
@@ -155,7 +156,7 @@ func loadTasks() error {
 			// Higher priority tasks should come first, so we use > instead of <.
 			return tasks[i].Priority > tasks[j].Priority
 		})
-	case "dueDate":
+	case "due-date":
 		sort.Slice(tasks, func(i, j int) bool {
 			if tasks[i].DueDate == "" {
 				return false
@@ -170,7 +171,7 @@ func loadTasks() error {
 			return tasks[i].Title < tasks[j].Title
 		})
 	default:
-		return fmt.Errorf("invalid sort option: %s", sortBy)
+		return fmt.Errorf("invalid sort option: %s", cfg.SortBy)
 	}
 	selectedTask = min(selectedTask, len(tasks)-1)
 	return nil
@@ -179,7 +180,17 @@ func loadTasks() error {
 func layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 
-	frameRunes := []rune{'─', '│', '╭', '╮', '╰', '╯'}
+	var frameRunes []rune
+	switch cfg.FrameStyle {
+	case "single":
+		frameRunes = []rune{'─', '│', '┌', '┐', '└', '┘', '├', '┤', '┬', '┴', '┼'}
+	case "double":
+		frameRunes = []rune{'═', '║', '╔', '╗', '╚', '╝', '╠', '╣', '╦', '╩', '╬'}
+	case "round":
+		frameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
+	default:
+		return fmt.Errorf("invalid frame style: %s", cfg.FrameStyle)
+	}
 	for _, view := range g.Views() {
 		view.FrameRunes = frameRunes
 		view.SelBgColor = gocui.ColorCyan
@@ -339,7 +350,7 @@ func updateViews(g *gocui.Gui) error {
 	} else if g.CurrentView() == detailsView {
 		spaceKeyText = "| <space>: Follow Link "
 	}
-	if showClosed {
+	if cfg.ShowClosed {
 		hKeyText = "Hide"
 	} else {
 		hKeyText = "Show"
@@ -393,7 +404,7 @@ func initKeybindings(g *gocui.Gui) error {
 		{"tasks", 's', gocui.ModNone, promptSort},
 		{"tasks", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selectedTask = 0; return updateViews(g) }},
 		{"tasks", 'G', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selectedTask = len(tasks) - 1; return updateViews(g) }},
-		{"tasks", 'H', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { showClosed = !showClosed; return loadTasks() }},
+		{"tasks", 'H', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { cfg.ShowClosed = !cfg.ShowClosed; return loadTasks() }},
 		{"tasks", 'r', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return loadTasks() }},
 		{"tasks", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 			searchQuery.value = ""

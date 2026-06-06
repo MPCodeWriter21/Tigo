@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"tigo/internal/config"
 	"tigo/internal/ui"
 	"tigo/pkg/db"
 )
@@ -41,17 +43,31 @@ func main() {
 	}
 
 	rootPath := flag.Arg(0)
+	cfg, err := config.LoadConfig()
 	if rootPath == "" {
 		rootPath = db.ResolveRoot()
+	} else {
+		cfgPath := filepath.Join(rootPath, "config.yaml")
+		if _, err := os.Stat(cfgPath); err == nil {
+			err = config.LoadConfigFromPath(cfgPath, cfg)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error loading config from %s: %v\n", cfgPath, err)
+				os.Exit(1)
+			}
+		}
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
 	}
 
-	err := db.Init(rootPath)
+	err = db.Init(rootPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error initializing database: %v\n", err)
 		os.Exit(1)
 	}
 
-	err = ui.Run(rootPath)
+	err = ui.Run(rootPath, cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error running UI: %v\n", err)
 		os.Exit(1)

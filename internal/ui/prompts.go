@@ -37,7 +37,7 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 			selectedTask = len(tasks)
 			return nil
 		},
-		"", 50, []string{}, "", "")
+		"", cfg.DefaultPriority, []string{}, "", "")
 }
 
 func promptEditTask(g *gocui.Gui, v *gocui.View) error {
@@ -268,7 +268,7 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 
 		var priority int
 		if priority, err = strconv.Atoi(priorityStr); err != nil {
-			priority = 50
+			priority = cfg.DefaultPriority
 		}
 		tags := []string{}
 		for tag := range strings.SplitSeq(tagsView.Buffer(), ",") {
@@ -465,13 +465,13 @@ func submitSort(g *gocui.Gui, v *gocui.View) error {
 	_, cy := v.Cursor()
 	switch cy {
 	case 0:
-		sortBy = "id"
+		cfg.SortBy = "id"
 	case 1:
-		sortBy = "priority"
+		cfg.SortBy = "priority"
 	case 2:
-		sortBy = "dueDate"
+		cfg.SortBy = "due-date"
 	case 3:
-		sortBy = "title"
+		cfg.SortBy = "title"
 	default:
 		return fmt.Errorf("selection out of range: %d", cy)
 	}
