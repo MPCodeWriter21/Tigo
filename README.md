@@ -21,6 +21,9 @@ Ensure you have [Go](https://go.dev/) installed.
 git clone https://github.com/MPCodeWriter21/Tigo.git
 cd Tigo
 go install ./cmd/tigo
+
+# Directly run without installing
+go run ./cmd/tigo
 ```
 
 Usage
