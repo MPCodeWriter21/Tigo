@@ -13,7 +13,7 @@ import (
 	"tigo/pkg/task"
 
 	"github.com/awesome-gocui/gocui"
-	"golang.design/x/clipboard"
+	"github.com/atotto/clipboard"
 )
 
 var (
@@ -559,15 +559,13 @@ func detailsFprintf(v *gocui.View, cx, cy *int, showSelection bool, format strin
 	}
 }
 
-// Yank the currently selected detail line to the clipboard, without ANSI escape codes
+// Yank the currently selected detail to the clipboard
 func copyDetail(g *gocui.Gui, v *gocui.View) error {
 	if currentDetail.value != "" {
-		if err := clipboard.Init(); err != nil {
-			return err
-		}
-		clipboard.Write(clipboard.FmtText, []byte(currentDetail.value))
+		clipboard.WriteAll(currentDetail.value)
 	}
-	// TODO: After the Console view is added, show a message in the console view that the detail has been copied to the clipboard.
+	// TODO: After the logs view is added, show a message in the console view that the detail has been copied to the clipboard.
+	// Related: TASK(20260605-162018)
 	return nil
 }
 
