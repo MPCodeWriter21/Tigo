@@ -362,6 +362,7 @@ func initKeybindings(g *gocui.Gui) error {
 		{"", '`', gocui.ModNone, showCurrentTigoDirectory},
 		{"details", 'y', gocui.ModNone, copyDetail},
 		{"details", 'Y', gocui.ModNone, copyLine},
+		{"details", 'e', gocui.ModNone, promptEditTask},
 		{"details", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("tasks")},
 		{"details", gocui.KeyEsc, gocui.ModNone, setCurrentViewCallback("tasks")},
 		{"details", gocui.KeySpace, gocui.ModNone, followDetail},
