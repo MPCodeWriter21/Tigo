@@ -483,6 +483,9 @@ func submitSort(g *gocui.Gui, v *gocui.View) error {
 }
 
 func promptMessageBox(g *gocui.Gui, title, message, focusView string, focusCursor bool) error {
+	if focusView == "" {
+		focusView = g.CurrentView().Name()
+	}
 	maxX, maxY := g.Size()
 	width := 0
 	height := 1

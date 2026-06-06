@@ -325,5 +325,5 @@ func parseRelativeDateTime(input string) (string, error) {
 }
 
 func showCurrentTigoDirectory(g *gocui.Gui, v *gocui.View) error {
-	return promptMessageBox(g, "Current Tigo Directory", tigoRoot, "tasks", false)
+	return promptMessageBox(g, "Current Tigo Directory", tigoRoot, "", false)
 }
