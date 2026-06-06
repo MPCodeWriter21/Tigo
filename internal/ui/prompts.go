@@ -157,7 +157,9 @@ func _promptTask(
 			g.SetKeybinding("taskDialogPriority", digit, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 				if len(priority) < 10 {
 					priority += string(digit)
-					priority = strings.TrimLeft(priority, "0")
+					for len(priority) > 1 && priority[0] == '0' {
+						priority = priority[1:]
+					}
 				}
 				return printPriority()
 			})
