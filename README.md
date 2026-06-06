@@ -54,6 +54,7 @@ use $HOME/.local/share/tigo.
 - `y`: Yank (copy) the selected task's content to the clipboard
 - `Y`: Yank the whole current line
 - `o`: Open the tasks containing directory in the file explorer
+- `O`: Open the selected task's TASK.md in the default editor
 - `r`: Refresh the task list (useful if tasks are modified outside Tigo)
 - `` ` ``: Show the current Tigo directory
 - `<space>`: Toggle task status (OPEN/CLOSED) / Follow hyperlink

@@ -196,28 +196,8 @@ func oneLineEditor(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
 	}
 }
 
-// Opens the file at the given path with the default application. Returns an error if it fails.
-func openFile(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return os.ErrNotExist
-	}
-
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.Command("open", path)
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", "", path)
-	default: // linux, freebsd, etc.
-		// Try common launchers in order
-		for _, launcher := range []string{"xdg-open", "gio", "gnome-open", "kde-open", "exo-open", "mimeopen", "termux-open"} {
-			if _, err := exec.LookPath(launcher); err == nil {
-				return exec.Command(launcher, path).Start()
-			}
-		}
-		return fmt.Errorf("no suitable open command found; install xdg-utils or a desktop environment")
-	}
-	return cmd.Start()
+func showCurrentTigoDirectory(g *gocui.Gui, v *gocui.View) error {
+	return promptMessageBox(g, "Current Tigo Directory", tigoRoot, "", false)
 }
 
 // parseRelativeDateTime takes a string like:
@@ -324,6 +304,82 @@ func parseRelativeDateTime(input string) (string, error) {
 	}
 }
 
-func showCurrentTigoDirectory(g *gocui.Gui, v *gocui.View) error {
-	return promptMessageBox(g, "Current Tigo Directory", tigoRoot, "", false)
+// Opens the file at the given path with the default application. Returns an error if it fails.
+func openFile(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return os.ErrNotExist
+	}
+
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", path)
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", "", path)
+	default: // linux, freebsd, etc.
+		// Try common launchers in order
+		for _, launcher := range []string{"xdg-open", "gio", "gnome-open", "kde-open", "exo-open", "mimeopen", "termux-open"} {
+			if _, err := exec.LookPath(launcher); err == nil {
+				return exec.Command(launcher, path).Start()
+			}
+		}
+		return fmt.Errorf("no suitable open command found; install xdg-utils or a desktop environment")
+	}
+	return cmd.Start()
+}
+
+// openInEditor opens the given file in the user's default text editor.
+func openInEditor(filePath string) error {
+	// 1. Check environment variables
+	if editor := os.Getenv("VISUAL"); editor != "" {
+		return runCommand(editor, filePath)
+	}
+	if editor := os.Getenv("EDITOR"); editor != "" {
+		return runCommand(editor, filePath)
+	}
+
+	switch runtime.GOOS {
+	case "linux", "freebsd", "openbsd", "netbsd", "dragonfly":
+		// 2. Try Debian/Ubuntu alternatives
+		if editor, err := exec.LookPath("sensible-editor"); err == nil {
+			return runCommand(editor, filePath)
+		}
+		if editor, err := exec.LookPath("editor"); err == nil {
+			return runCommand(editor, filePath)
+		}
+
+		// 3. Search common editors
+		for _, ed := range []string{
+			"vim", "vi", "nano", "emacs", "micro", "helix", "code", "gedit", "kate",
+		} {
+			if path, err := exec.LookPath(ed); err == nil {
+				return runCommand(path, filePath)
+			}
+		}
+		return fmt.Errorf("no text editor found; set $VISUAL or $EDITOR")
+
+	case "darwin":
+		// macOS has `open -t` for default text editor
+		return exec.Command("open", "-t", filePath).Start()
+
+	case "windows":
+		// Use `start` to open with associated program
+		return exec.Command("cmd", "/c", "start", "", filePath).Start()
+
+	default:
+		return fmt.Errorf("unsupported OS: %s", runtime.GOOS)
+	}
+}
+
+// runCommand starts a command with arguments; if the editor supports
+// multiple files you might need to split the EDITOR variable smartly.
+func runCommand(editor, filePath string) error {
+	// Handle editors defined with arguments, e.g. "code --wait".
+	parts := strings.Fields(editor)
+	args := append(parts[1:], filePath)
+	cmd := exec.Command(parts[0], args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run() // Run blocks until the editor exits (useful for terminal editors)
 }

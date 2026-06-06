@@ -358,7 +358,8 @@ func initKeybindings(g *gocui.Gui) error {
 		{"", gocui.KeyCtrlC, gocui.ModNone, quit},
 		{"", 'q', gocui.ModNone, quit},
 		{"", '/', gocui.ModNone, promptSearch},
-		{"", 'o', gocui.ModNone, openSelectedDirectory},
+		{"", 'o', gocui.ModNone, openSelectedTaskDirectory},
+		{"", 'O', gocui.ModNone, openSelectedTaskFile},
 		{"", '`', gocui.ModNone, showCurrentTigoDirectory},
 		{"details", 'y', gocui.ModNone, copyDetail},
 		{"details", 'Y', gocui.ModNone, copyLine},
@@ -657,11 +658,27 @@ func followDetail(g *gocui.Gui, v *gocui.View) error {
 	return fmt.Errorf("invalid detail type: %v", currentDetail.type_)
 }
 
-func openSelectedDirectory(g *gocui.Gui, v *gocui.View) error {
+func openSelectedTaskDirectory(g *gocui.Gui, v *gocui.View) error {
 	if len(tasks) == 0 {
 		return nil
 	}
 	currentTask := tasks[selectedTask]
 	taskDir := filepath.Join(tigoRoot, currentTask.ID)
 	return openFile(taskDir)
+}
+
+func openSelectedTaskFile(g *gocui.Gui, v *gocui.View) error {
+	if len(tasks) == 0 {
+		return nil
+	}
+	gocui.Suspend()
+	defer gocui.Resume()
+
+	currentTask := tasks[selectedTask]
+	taskFile := filepath.Join(tigoRoot, currentTask.ID, "TASK.md")
+	err := openInEditor(taskFile)
+	if err != nil {
+		return err
+	}
+	return loadTasks()
 }
