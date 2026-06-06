@@ -29,12 +29,14 @@ Usage
 ```text
 tigo [root]
 
-By default tigo looks for a .tigo directory in the current working directory
-and use that as the root directory of tasks. If .tigo does not exist, it will
-use $HOME/.local/share/tigo.
+By default tigo looks for a `.tigo` directory in the current working directory
+and use that as the root directory of tasks. If `.tigo` does not exist, it will
+use `$HOME/.local/share/tigo`.
 
-    -h --help       Show the help
-    -v --version    Show the version
+    -h --help             Show this help and exit
+    -v --version          Show the version and exit
+    --default-config      Print the default configuration and exit
+    --user-config-path    Print the path to the user configuration and exit
 ```
 
 ### Keybindings (TUI)
