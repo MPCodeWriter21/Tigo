@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"tigo/pkg/logs"
 	"unicode/utf8"
 
 	"github.com/awesome-gocui/gocui"
@@ -46,8 +47,17 @@ var bindings []keybinding = []keybinding{
 	{[]string{"tasks", "details"}, []any{'o'}, gocui.ModNone, openSelectedTaskDirectory, "Open the directory of the selected task", true},
 	{[]string{"tasks", "details"}, []any{'O'}, gocui.ModNone, openSelectedTaskFile, "Open the selected task in the default editor", true},
 	{[]string{"tasks", "details"}, []any{'`'}, gocui.ModNone, showCurrentTigoDirectory, "Show the current Tigo directory", true},
+	{[]string{"tasks", "details"}, []any{'L'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { _, err := g.SetCurrentView("logs"); return err }, "Focus the logs view", true},
 	{[]string{"tasks"}, []any{gocui.KeyTab, gocui.KeyEnter, 'l'}, gocui.ModNone, showDetails, "Focus the details view", true},
 	{[]string{"details"}, []any{gocui.KeyTab, gocui.KeyEsc}, gocui.ModNone, setCurrentViewCallback("tasks"), "Focus the tasks view", true},
+
+	{[]string{"logs"}, []any{gocui.KeyTab, gocui.KeyEsc}, gocui.ModNone, setCurrentViewCallback("tasks"), "Focus the tasks view", true},
+	{[]string{"logs"}, []any{'h', gocui.KeyArrowLeft}, gocui.ModNone, setCurrentViewCallback("details"), "Focus the details view", true},
+	{[]string{"logs"}, []any{gocui.KeyArrowDown, 'j'}, gocui.ModNone, cursorDown, "Scroll down", true},
+	{[]string{"logs"}, []any{gocui.KeyArrowUp, 'k'}, gocui.ModNone, cursorUp, "Scroll up", true},
+	{[]string{"logs"}, []any{'g'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return v.SetCursor(0, 0) }, "Scroll to the top", true},
+	{[]string{"logs"}, []any{'G'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { h := v.LinesHeight(); return v.SetCursor(1, h-2) }, "Scroll to the bottom", true},
+	{[]string{"logs"}, []any{'C'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { logs.Clear(); return nil }, "Clear all log entries", true},
 
 	{[]string{"deleteDialog"}, []any{gocui.KeyEnter}, gocui.ModNone, submitDeleteTask, "Confirm deleting the selected task", true},
 	{[]string{"deleteDialog"}, []any{gocui.KeyEsc}, gocui.ModNone, deleteViewDefault, "Cancel deleting the selected task", true},

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"tigo/pkg/db"
+	"tigo/pkg/logs"
 
 	"github.com/atotto/clipboard"
 	"github.com/awesome-gocui/gocui"
@@ -75,9 +76,9 @@ func copyLine(g *gocui.Gui, v *gocui.View) error {
 	if line == "" {
 		return nil
 	}
-	return clipboard.WriteAll(line)
-	// TODO: After the logs view is added, show a message in the console view that the detail has been copied to the clipboard.
-	// Related: TASK(20260605-162018)
+	clipboard.WriteAll(line)
+	logs.Append(logs.LevelInfo, "Copied line to clipboard: %q", line)
+	return nil
 }
 
 func setCurrentViewCallback(name string) func(*gocui.Gui, *gocui.View) error {

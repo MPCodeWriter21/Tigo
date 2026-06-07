@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"tigo/pkg/logs"
 	"tigo/pkg/task"
 	"time"
 )
@@ -76,6 +77,7 @@ func CreateNewTask(root, title string, priority int, tags []string, dueDate stri
 			return "", err
 		}
 
+		logs.Append(logs.LevelInfo, "Created task %s: %s", id, title)
 		return id, nil
 	}
 }
@@ -110,7 +112,11 @@ func DeleteTask(root, id string) error {
 		return fmt.Errorf("task with ID %s does not exist", id)
 	}
 
-	return os.RemoveAll(taskDir)
+	err := os.RemoveAll(taskDir)
+	if err == nil {
+		logs.Append(logs.LevelInfo, "Deleted task %s", id)
+	}
+	return err
 }
 
 // ToggleStatus switches between OPEN and CLOSED status.
@@ -129,5 +135,9 @@ func ToggleStatus(root string, t *task.Task) (string, error) {
 	}
 
 	// Update the raw lines to reflect the new status
-	return t.Status, task.Serialize(t, taskMDPath)
+	err := task.Serialize(t, taskMDPath)
+	if err == nil {
+		logs.Append(logs.LevelInfo, "Changed task %s status to %s", t.ID, t.Status)
+	}
+	return t.Status, err
 }

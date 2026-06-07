@@ -11,6 +11,7 @@ import (
 
 	"tigo/internal/config"
 	"tigo/pkg/db"
+	"tigo/pkg/logs"
 	"tigo/pkg/task"
 
 	"github.com/atotto/clipboard"
@@ -206,12 +207,31 @@ func layout(g *gocui.Gui) error {
 		}
 	}
 
-	if v, err := g.SetView("details", maxX/3, 0, maxX-1, maxY-2, 0); err != nil {
+	detailHeight := (maxY - 2) * 2 / 3
+	if detailHeight < 5 {
+		detailHeight = maxY - 2
+	}
+	logHeight := (maxY - 2) - detailHeight
+	hasLogs := logHeight >= 3
+
+	if v, err := g.SetView("details", maxX/3, 0, maxX-1, detailHeight-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
 		v.Title = "Details"
 		v.Wrap = true
+	}
+
+	if hasLogs {
+		if v, err := g.SetView("logs", maxX/3, detailHeight, maxX-1, maxY-2, 0); err != nil {
+			if err != gocui.ErrUnknownView {
+				return err
+			}
+			v.Title = "Logs"
+			v.Wrap = false
+		}
+	} else {
+		g.DeleteView("logs")
 	}
 
 	if v, err := g.SetView("help", -1, maxY-2, maxX, maxY, 0); err != nil {
@@ -326,6 +346,45 @@ func updateViews(g *gocui.Gui) error {
 	}
 	if g.CurrentView() == detailsView {
 		detailsView.SetCursor(*cx, min(*cy, detailsView.LinesHeight()-2))
+	}
+
+	// logs view
+	logsView, err := g.View("logs")
+	if err == nil {
+		cx, cy := logsView.Cursor()
+		if g.CurrentView() != logsView {
+			cy = logsView.LinesHeight() - 2
+		}
+		ox, oy = tasksView.Origin()
+		logsView.Clear()
+		entries := logs.Entries()
+		for _, e := range entries {
+			timeStr := e.Time.Format("15:04:05")
+			var color string
+			switch e.Level {
+			case logs.LevelInfo:
+				color = "\x1b[32m"
+			case logs.LevelWarn:
+				color = "\x1b[33m"
+			case logs.LevelError:
+				color = "\x1b[31m"
+			case logs.LevelGit:
+				color = "\x1b[36m"
+			}
+			fmt.Fprintf(logsView, "[\x1b[36m%s\x1b[0m] [%s%s\x1b[0m] \x1b[1;37m%s\x1b[0m\n", timeStr, color, e.Level, e.Message)
+		}
+		_, logsHeight := logsView.Size()
+		if cy < oy+3 {
+			oy = cy - 3
+		}
+		if cy > oy+logsHeight-3 {
+			oy = cy - logsHeight + 3
+		}
+		if oy < 0 {
+			oy = 0
+		}
+		logsView.SetOrigin(ox, oy)
+		logsView.SetCursor(cx, min(cy, logsView.LinesHeight()-2))
 	}
 
 	// help view
@@ -554,9 +613,8 @@ func detailsFprintf(v *gocui.View, cx, cy *int, showSelection bool, format strin
 func copyDetail(g *gocui.Gui, v *gocui.View) error {
 	if currentDetail.value != "" {
 		clipboard.WriteAll(currentDetail.value)
+		logs.Append(logs.LevelInfo, "Copied to clipboard: %q", currentDetail.value)
 	}
-	// TODO: After the logs view is added, show a message in the console view that the detail has been copied to the clipboard.
-	// Related: TASK(20260605-162018)
 	return nil
 }
 
