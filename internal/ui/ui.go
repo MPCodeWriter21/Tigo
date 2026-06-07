@@ -20,7 +20,7 @@ import (
 var (
 	tigoRoot      string
 	tasks         []*task.Task
-	selectedTask  int = 0
+	selectedTask  int = 0 // Index of the currently selected task in the tasks slice
 	cfg           *config.TigoConfig
 	searchQuery   searchQueryType
 	currentDetail detail
@@ -70,7 +70,6 @@ type searchQueryType struct {
 func Run(root string, conf *config.TigoConfig) error {
 	// Enter Alternate Screen Buffer (hide main terminal content)
 	fmt.Print("\x1b[?1049h")
-	defer fmt.Print("\x1b[?1049l")
 
 	tigoRoot = root
 	cfg = conf
@@ -79,7 +78,10 @@ func Run(root string, conf *config.TigoConfig) error {
 	if err != nil {
 		return err
 	}
+	defer func() { g.Cursor = true }()
 	defer g.Close()
+	defer fmt.Print("\x1b[?25h")   // Make cursor visible
+	defer fmt.Print("\x1b[?1049l") // Disable alternate screen
 
 	gocui.DefaultEditor = gocui.EditorFunc(simpleEditor)
 	g.SetManagerFunc(layout)
@@ -404,14 +406,9 @@ func initKeybindings(g *gocui.Gui) error {
 		{"tasks", 's', gocui.ModNone, promptSort},
 		{"tasks", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selectedTask = 0; return updateViews(g) }},
 		{"tasks", 'G', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selectedTask = len(tasks) - 1; return updateViews(g) }},
-		{"tasks", 'H', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { cfg.ShowClosed = !cfg.ShowClosed; return loadTasks() }},
+		{"tasks", 'H', gocui.ModNone, toggleShowClosed},
 		{"tasks", 'r', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return loadTasks() }},
-		{"tasks", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-			searchQuery.value = ""
-			g.DeleteView("search")
-			loadTasks()
-			return updateViews(g)
-		}},
+		{"tasks", gocui.KeyEsc, gocui.ModNone, clearSearchQuery},
 	}
 
 	for _, binding := range bindings {
@@ -432,6 +429,47 @@ func tasksDown(g *gocui.Gui, v *gocui.View) error {
 func tasksUp(g *gocui.Gui, v *gocui.View) error {
 	if selectedTask > 0 {
 		selectedTask--
+	}
+	return updateViews(g)
+}
+
+func toggleShowClosed(g *gocui.Gui, v *gocui.View) error {
+	cfg.ShowClosed = !cfg.ShowClosed
+	if len(tasks) != 0 && selectedTask < len(tasks) {
+		task := tasks[selectedTask]
+		if task.Status != "CLOSED" {
+			// Make sure the previously selected task is still selected after reloading tasks, if it still exists.
+			selectedID := task.ID
+			err := loadTasks()
+			if err != nil {
+				return err
+			}
+			for i, t := range tasks {
+				if t.ID == selectedID {
+					selectedTask = i
+					break
+				}
+			}
+			return nil
+		}
+	}
+	return loadTasks()
+}
+
+func clearSearchQuery(g *gocui.Gui, v *gocui.View) error {
+	searchQuery.value = ""
+	g.DeleteView("search")
+	var selectedID string
+	if len(tasks) > 0 && selectedTask >= 0 && selectedTask < len(tasks) {
+		selectedID = tasks[selectedTask].ID
+	}
+	loadTasks()
+	// Make sure the previously selected task is still selected after reloading tasks
+	for i, t := range tasks {
+		if t.ID == selectedID {
+			selectedTask = i
+			break
+		}
 	}
 	return updateViews(g)
 }

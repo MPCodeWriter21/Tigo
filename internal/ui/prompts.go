@@ -29,12 +29,20 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 				return ErrPreventDialogClose
 			}
 
-			_, err := db.CreateNewTask(tigoRoot, title, priority, tags, dueDate, description)
+			newTaskID, err := db.CreateNewTask(tigoRoot, title, priority, tags, dueDate, description)
 			if err != nil {
 				return err
 			}
 
-			selectedTask = len(tasks)
+			loadTasks()
+			// Select the newly created task
+			for i, t := range tasks {
+				if t.ID == newTaskID {
+					selectedTask = i
+					break
+				}
+			}
+
 			return nil
 		},
 		"", cfg.DefaultPriority, []string{}, "", "")
@@ -381,24 +389,12 @@ func promptSearch(g *gocui.Gui, _ *gocui.View) error {
 	v.Wrap = true
 	v.Editable = true
 	v.Editor = gocui.EditorFunc(oneLineEditor)
-	g.SetKeybinding("search", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		if searchQuery.value == "" {
-			return deleteViewDefault(g, v)
-		}
-		v.Clear()
-		fmt.Fprint(v, searchQuery)
-		v.SetCursor(len(searchQuery.value), 0)
-		g.Cursor = false
-		if _, err := g.SetCurrentView("tasks"); err != nil {
-			return err
-		}
-		return loadTasks()
-	})
+	g.SetKeybinding("search", gocui.KeyEsc, gocui.ModNone, searchClose)
 	g.SetKeybinding("search", gocui.KeyEnter, gocui.ModNone, submitSearch)
 	g.SetKeybinding("search", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if searchQuery.value != "" {
 			v.Clear()
-			fmt.Fprint(v, searchQuery)
+			fmt.Fprint(v, searchQuery.value)
 			v.SetCursor(len(searchQuery.value), 0)
 		}
 		return nil
@@ -406,6 +402,20 @@ func promptSearch(g *gocui.Gui, _ *gocui.View) error {
 
 	_, err = g.SetCurrentView("search")
 	return err
+}
+
+func searchClose(g *gocui.Gui, v *gocui.View) error {
+	if searchQuery.value == "" {
+		return deleteViewDefault(g, v)
+	}
+	v.Clear()
+	fmt.Fprint(v, searchQuery.value)
+	v.SetCursor(len(searchQuery.value), 0)
+	g.Cursor = false
+	if _, err := g.SetCurrentView("tasks"); err != nil {
+		return err
+	}
+	return loadTasks()
 }
 
 func submitSearch(g *gocui.Gui, v *gocui.View) error {
@@ -423,8 +433,19 @@ func submitSearch(g *gocui.Gui, v *gocui.View) error {
 	if _, err := g.SetCurrentView("tasks"); err != nil {
 		return err
 	}
+	var selectedID string
+	if len(tasks) > 0 && selectedTask < len(tasks) {
+		selectedID = tasks[selectedTask].ID
+	}
 	if err := loadTasks(); err != nil {
 		return err
+	}
+	// Try to keep the same task selected after searching (if it still exists)
+	for i, t := range tasks {
+		if t.ID == selectedID {
+			selectedTask = i
+			break
+		}
 	}
 	return updateViews(g)
 }
@@ -478,8 +499,19 @@ func submitSort(g *gocui.Gui, v *gocui.View) error {
 	if err := deleteViewDefault(g, v); err != nil {
 		return err
 	}
+	var selectedID string
+	if len(tasks) > 0 && selectedTask < len(tasks) {
+		selectedID = tasks[selectedTask].ID
+	}
 	if err := loadTasks(); err != nil {
 		return err
+	}
+	// Keep the same task selected after sorting (if it still exists)
+	for i, t := range tasks {
+		if t.ID == selectedID {
+			selectedTask = i
+			break
+		}
 	}
 	return updateViews(g)
 }

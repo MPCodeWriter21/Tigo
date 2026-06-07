@@ -1,3 +1,4 @@
+// Package db provides functions to manage task storage on the filesystem.
 package db
 
 import (
@@ -39,6 +40,7 @@ func GenerateID() string {
 }
 
 // CreateNewTask creates a directory and boilerplate TASK.md for a new task.
+// Returns the generated task ID.
 func CreateNewTask(root, title string, priority int, tags []string, dueDate string, description string) (string, error) {
 	maxRetries := 50
 	for {
