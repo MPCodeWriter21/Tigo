@@ -49,6 +49,9 @@ var bindings []keybinding = []keybinding{
 	{[]string{"tasks"}, []any{gocui.KeyTab, gocui.KeyEnter, 'l'}, gocui.ModNone, showDetails, "Focus the details view", true},
 	{[]string{"details"}, []any{gocui.KeyTab, gocui.KeyEsc}, gocui.ModNone, setCurrentViewCallback("tasks"), "Focus the tasks view", true},
 
+	{[]string{"deleteDialog"}, []any{gocui.KeyEnter}, gocui.ModNone, submitDeleteTask, "Confirm deleting the selected task", true},
+	{[]string{"deleteDialog"}, []any{gocui.KeyEsc}, gocui.ModNone, deleteViewDefault, "Cancel deleting the selected task", true},
+
 	{[]string{"sort"}, []any{'1'}, gocui.ModNone, nil, "Sort by task ID", true},
 	{[]string{"sort"}, []any{'2'}, gocui.ModNone, nil, "Sort by priority", true},
 	{[]string{"sort"}, []any{'3'}, gocui.ModNone, nil, "Sort by due-date", true},
@@ -57,6 +60,10 @@ var bindings []keybinding = []keybinding{
 	{[]string{"sort"}, []any{'k', gocui.KeyArrowUp}, gocui.ModNone, nil, "Select previous sort option", true},
 	{[]string{"sort"}, []any{gocui.KeyEnter}, gocui.ModNone, nil, "Apply the selected sort option", true},
 	{[]string{"sort"}, []any{gocui.KeyEsc}, gocui.ModNone, nil, "Close the sort menu", true},
+
+	{[]string{"search"}, []any{gocui.KeyEsc}, gocui.ModNone, clearSearchQuery, "Close the search prompt", true},
+	{[]string{"search"}, []any{gocui.KeyEnter}, gocui.ModNone, submitSearch, "Submit the search query", true},
+	{[]string{"search"}, []any{gocui.KeyArrowUp}, gocui.ModNone, searchCursorUp, "Fill the search view with the previous search query", true},
 
 	{[]string{""}, []any{gocui.KeyCtrlC, 'q'}, gocui.ModNone, quit, "Quit the application", true},
 }

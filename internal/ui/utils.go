@@ -22,9 +22,11 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func deleteViewAndSetCurrent(viewName string, cursor bool) func(*gocui.Gui, *gocui.View) error {
+func deleteViewAndSetCurrent(viewName string, cursor bool, deleteKeybindings bool) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
-		g.DeleteKeybindings(v.Name())
+		if deleteKeybindings {
+			g.DeleteKeybindings(v.Name())
+		}
 		g.Cursor = cursor
 
 		if err := g.DeleteView(v.Name()); err != nil {
@@ -37,7 +39,7 @@ func deleteViewAndSetCurrent(viewName string, cursor bool) func(*gocui.Gui, *goc
 	}
 }
 
-var deleteViewDefault = deleteViewAndSetCurrent("tasks", false)
+var deleteViewDefault = deleteViewAndSetCurrent("tasks", false, false)
 
 func toggleTaskStatus(g *gocui.Gui, v *gocui.View) error {
 	if len(tasks) > 0 && selectedTask < len(tasks) {

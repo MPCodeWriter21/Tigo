@@ -318,6 +318,7 @@ func closePromptTaskDialog(g *gocui.Gui, _ *gocui.View) error {
 		if err := g.DeleteView(v); err != nil {
 			return err
 		}
+		// The keybindings need to be cleared each time to make sure each Task Dialog has the correct success callback
 		g.DeleteKeybindings(v)
 	}
 
@@ -348,9 +349,6 @@ func promptDeleteTask(g *gocui.Gui, v *gocui.View) error {
 		if _, err := g.SetCurrentView("deleteDialog"); err != nil {
 			return err
 		}
-
-		g.SetKeybinding("deleteDialog", gocui.KeyEnter, gocui.ModNone, submitDeleteTask)
-		g.SetKeybinding("deleteDialog", gocui.KeyEsc, gocui.ModNone, deleteViewDefault)
 	}
 
 	return nil
@@ -390,16 +388,6 @@ func promptSearch(g *gocui.Gui, _ *gocui.View) error {
 	v.Wrap = true
 	v.Editable = true
 	v.Editor = gocui.EditorFunc(oneLineEditor)
-	g.SetKeybinding("search", gocui.KeyEsc, gocui.ModNone, searchClose)
-	g.SetKeybinding("search", gocui.KeyEnter, gocui.ModNone, submitSearch)
-	g.SetKeybinding("search", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		if searchQuery.value != "" {
-			v.Clear()
-			fmt.Fprint(v, searchQuery.value)
-			v.SetCursor(len(searchQuery.value), 0)
-		}
-		return nil
-	})
 
 	_, err = g.SetCurrentView("search")
 	return err
@@ -428,7 +416,6 @@ func submitSearch(g *gocui.Gui, v *gocui.View) error {
 		type_: normalQuery,
 		value: query,
 	}
-	g.DeleteKeybindings(v.Name())
 	g.Cursor = false
 
 	if _, err := g.SetCurrentView("tasks"); err != nil {
@@ -451,6 +438,15 @@ func submitSearch(g *gocui.Gui, v *gocui.View) error {
 	return updateViews(g)
 }
 
+func searchCursorUp(g *gocui.Gui, v *gocui.View) error {
+	if searchQuery.value != "" {
+		v.Clear()
+		fmt.Fprint(v, searchQuery.value)
+		v.SetCursor(len(searchQuery.value), 0)
+	}
+	return nil
+}
+
 func promptSort(g *gocui.Gui, v *gocui.View) error {
 	maxX, maxY := g.Size()
 	width := maxX / 2
@@ -468,16 +464,6 @@ func promptSort(g *gocui.Gui, v *gocui.View) error {
 		centeredFprintf(v, "2. Priority\n")
 		centeredFprintf(v, "3. Due Date\n")
 		centeredFprintf(v, "4. Title   \n")
-		g.SetKeybinding("sort", gocui.KeyEsc, gocui.ModNone, deleteViewDefault)
-		g.SetKeybinding("sort", gocui.KeyEnter, gocui.ModNone, submitSort)
-		g.SetKeybinding("sort", gocui.KeyArrowDown, gocui.ModNone, cursorDown)
-		g.SetKeybinding("sort", 'j', gocui.ModNone, cursorDown)
-		g.SetKeybinding("sort", gocui.KeyArrowUp, gocui.ModNone, cursorUp)
-		g.SetKeybinding("sort", 'k', gocui.ModNone, cursorUp)
-		g.SetKeybinding("sort", '1', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { v.SetCursor(0, 0); return submitSort(g, v) })
-		g.SetKeybinding("sort", '2', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { v.SetCursor(0, 1); return submitSort(g, v) })
-		g.SetKeybinding("sort", '3', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { v.SetCursor(0, 2); return submitSort(g, v) })
-		g.SetKeybinding("sort", '4', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { v.SetCursor(0, 3); return submitSort(g, v) })
 	}
 	_, err := g.SetCurrentView("sort")
 	return err
@@ -539,14 +525,14 @@ func promptMessageBox(g *gocui.Gui, title, message, focusView string, focusCurso
 		v.Title = title
 		v.Editable = false
 		fmt.Fprint(v, message)
+		// We set the keybindings every time and clear them upon closing the message box to ensure that they always take the set the correct focusView and focusCursor values
 		g.SetKeybinding(
 			"messageBox", gocui.KeyEnter, gocui.ModNone,
-			deleteViewAndSetCurrent(focusView, focusCursor))
+			deleteViewAndSetCurrent(focusView, focusCursor, true))
 		g.SetKeybinding(
 			"messageBox", gocui.KeyEsc, gocui.ModNone,
-			deleteViewAndSetCurrent(focusView, focusCursor))
+			deleteViewAndSetCurrent(focusView, focusCursor, true))
 	}
 	_, err := g.SetCurrentView("messageBox")
 	return err
 }
-
