@@ -31,13 +31,6 @@ var (
 	URLRegEx      = regexp.MustCompile(`(?:(?P<protocol>[a-z\-]+):\/\/(?P<hostname>[-a-zA-Z0-9]+(?:\.[-a-zA-Z0-9]+)+)(?P<port>:[0-9]+)?(?P<path>(?:\/[-a-zA-Z0-9()@:%_\+.~#?&=!]*)*))`)
 )
 
-type keybinding struct {
-	view    string // empty string means global
-	key     any    // gocui.Key or rune
-	mod     gocui.Modifier
-	handler func(*gocui.Gui, *gocui.View) error
-}
-
 type detailType int
 
 const (
@@ -357,65 +350,12 @@ func updateViews(g *gocui.Gui) error {
 	} else {
 		hKeyText = "Show"
 	}
-	helpText := fmt.Sprintf(" e: Edit | d: Delete %s| H: %s CLOSED | /: Search | \u2191/\u2193 j/k: Navigate | g/G: Top/Bottom", spaceKeyText, hKeyText)
+	helpText := fmt.Sprintf(" ?: Help | e: Edit | d: Delete %s| H: %s CLOSED | /: Search | \u2193/\u2191 j/k: Navigate | g/G: Top/Bottom", spaceKeyText, hKeyText)
 	if helpText != helpView.Buffer() {
 		helpView.Clear()
 		fmt.Fprint(helpView, helpText)
 	}
 
-	return nil
-}
-
-func initKeybindings(g *gocui.Gui) error {
-	bindings := []keybinding{
-		{"", gocui.KeyCtrlC, gocui.ModNone, quit},
-		{"", 'q', gocui.ModNone, quit},
-		{"", '/', gocui.ModNone, promptSearch},
-		{"", 'o', gocui.ModNone, openSelectedTaskDirectory},
-		{"", 'O', gocui.ModNone, openSelectedTaskFile},
-		{"", '`', gocui.ModNone, showCurrentTigoDirectory},
-		{"details", 'y', gocui.ModNone, copyDetail},
-		{"details", 'Y', gocui.ModNone, copyLine},
-		{"details", 'e', gocui.ModNone, promptEditTask},
-		{"details", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("tasks")},
-		{"details", gocui.KeyEsc, gocui.ModNone, setCurrentViewCallback("tasks")},
-		{"details", gocui.KeySpace, gocui.ModNone, followDetail},
-		{"details", gocui.KeyArrowDown, gocui.ModNone, cursorDown},
-		{"details", gocui.KeyArrowUp, gocui.ModNone, cursorUp},
-		{"details", gocui.KeyArrowLeft, gocui.ModNone, detailsLeft},
-		{"details", gocui.KeyArrowRight, gocui.ModNone, detailsRight},
-		{"details", 'j', gocui.ModNone, cursorDown},
-		{"details", 'k', gocui.ModNone, cursorUp},
-		{"details", 'h', gocui.ModNone, detailsLeft},
-		{"details", 'l', gocui.ModNone, detailsRight},
-		{"details", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return v.SetCursor(0, 0) }},
-		{"details", 'G', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { h := v.LinesHeight(); return v.SetCursor(1, h-2) }},
-		{"tasks", 'y', gocui.ModNone, copyLine},
-		{"tasks", gocui.KeyTab, gocui.ModNone, showDetails},
-		{"tasks", gocui.KeyEnter, gocui.ModNone, showDetails},
-		{"tasks", gocui.KeySpace, gocui.ModNone, toggleTaskStatus},
-		{"tasks", gocui.KeyArrowDown, gocui.ModNone, tasksDown},
-		{"tasks", gocui.KeyArrowUp, gocui.ModNone, tasksUp},
-		{"tasks", 'l', gocui.ModNone, showDetails},
-		{"tasks", 'j', gocui.ModNone, tasksDown},
-		{"tasks", 'k', gocui.ModNone, tasksUp},
-		{"tasks", 'a', gocui.ModNone, promptCreateTask},
-		{"tasks", 'n', gocui.ModNone, promptCreateTask},
-		{"tasks", 'e', gocui.ModNone, promptEditTask},
-		{"tasks", 'd', gocui.ModNone, promptDeleteTask},
-		{"tasks", 's', gocui.ModNone, promptSort},
-		{"tasks", 'g', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selectedTask = 0; return updateViews(g) }},
-		{"tasks", 'G', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selectedTask = len(tasks) - 1; return updateViews(g) }},
-		{"tasks", 'H', gocui.ModNone, toggleShowClosed},
-		{"tasks", 'r', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return loadTasks() }},
-		{"tasks", gocui.KeyEsc, gocui.ModNone, clearSearchQuery},
-	}
-
-	for _, binding := range bindings {
-		if err := g.SetKeybinding(binding.view, binding.key, binding.mod, binding.handler); err != nil {
-			return fmt.Errorf("bind %v to view %q: %w", binding.key, binding.view, err)
-		}
-	}
 	return nil
 }
 
