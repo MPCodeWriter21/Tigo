@@ -11,6 +11,7 @@ import (
 
 	"tigo/internal/config"
 	"tigo/pkg/db"
+	"tigo/pkg/git"
 	"tigo/pkg/logs"
 	"tigo/pkg/task"
 
@@ -87,6 +88,23 @@ func Run(root string, conf *config.TigoConfig) error {
 	if err := loadTasks(); err != nil {
 		return err
 	}
+
+	// Auto fetch in the background if using the default tigo directory
+	defaultTigoDir, _ := config.DefaultTigoDir()
+	if tigoRoot == defaultTigoDir {
+		go func() {
+			logs.Append(logs.LevelGit, "Fetching from remote...")
+			out, err := git.RunGitCommand(tigoRoot, "fetch", "--quiet")
+			if err != nil {
+				logs.Append(logs.LevelWarn, "Fetch failed: %v", err)
+			} else if out != "" {
+				logs.Append(logs.LevelGit, "Fetch: %s", out)
+			} else {
+				logs.Append(logs.LevelGit, "Fetch completed")
+			}
+		}()
+	}
+	updateGitState()
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		return err
@@ -409,7 +427,7 @@ func updateViews(g *gocui.Gui) error {
 	} else {
 		hKeyText = "Show"
 	}
-	helpText := fmt.Sprintf(" ?: Help | e: Edit | d: Delete %s| H: %s CLOSED | /: Search | \u2193/\u2191 j/k: Navigate | g/G: Top/Bottom", spaceKeyText, hKeyText)
+	helpText := fmt.Sprintf("%s ?: Help | e: Edit | d: Delete %s| H: %s CLOSED | /: Search | c: Commit | \u2193/\u2191 j/k: Navigate | g/G: Top/Bottom", gitStatusString(), spaceKeyText, hKeyText)
 	if helpText != helpView.Buffer() {
 		helpView.Clear()
 		fmt.Fprint(helpView, helpText)

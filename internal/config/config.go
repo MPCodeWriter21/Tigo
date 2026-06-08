@@ -27,6 +27,14 @@ func DefaultConfig() *TigoConfig {
 	}
 }
 
+func DefaultTigoDir() (string, error) {
+	userHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", errors.New("get user home dir: " + err.Error())
+	}
+	return filepath.Join(userHomeDir, ".local", "share", "tigo"), nil
+}
+
 // LoadConfigFromPath loads the Tigo configuration from a YAML file to the provided TigoConfig struct.
 // It returns an error if the file cannot be read or if the values are invalid.
 func LoadConfigFromPath(configPath string, cfg *TigoConfig) error {
@@ -86,11 +94,10 @@ func LoadConfig() (*TigoConfig, error) {
 	}
 
 	// If no local config is found, check for config in the default tigo directory
-	userHomeDir, err := os.UserHomeDir()
+	defaultTigoDir, err := DefaultTigoDir()
 	if err != nil {
-		return nil, errors.New("get user home dir: " + err.Error())
+		return nil, fmt.Errorf("get default tigo dir: %w", err)
 	}
-	defaultTigoDir := filepath.Join(userHomeDir, ".local", "share", "tigo")
 	defaultConfigPath := filepath.Join(defaultTigoDir, "config.yaml")
 	if _, err := os.Stat(defaultConfigPath); err == nil {
 		err = LoadConfigFromPath(defaultConfigPath, cfg)

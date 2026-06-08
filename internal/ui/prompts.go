@@ -35,6 +35,8 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 				return err
 			}
 
+			trackChange("Create", newTaskID, title, "")
+
 			loadTasks()
 			// Select the newly created task
 			for i, t := range tasks {
@@ -72,6 +74,8 @@ func promptEditTask(g *gocui.Gui, v *gocui.View) error {
 			t.Description = description
 
 			task.Serialize(t, filepath.Join(tigoRoot, t.ID, "TASK.md"))
+
+			trackChange("Edit", t.ID, title, "")
 
 			return nil
 		},
@@ -357,8 +361,12 @@ func promptDeleteTask(g *gocui.Gui, v *gocui.View) error {
 func submitDeleteTask(g *gocui.Gui, v *gocui.View) error {
 	if len(tasks) > 0 && selectedTask < len(tasks) {
 		t := tasks[selectedTask]
+		taskID := t.ID
+		taskTitle := t.Title
 
-		db.DeleteTask(tigoRoot, t.ID)
+		db.DeleteTask(tigoRoot, taskID)
+
+		trackChange("Delete", taskID, taskTitle, "")
 
 		if selectedTask > 0 {
 			selectedTask--

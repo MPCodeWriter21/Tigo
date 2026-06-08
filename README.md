@@ -7,10 +7,20 @@ Features
 --------
 
 - **Store Tasks Locally**: Keeps tasks as `TASK.md` files within structured
-  directories (YYYYMMDD-HHmmss).
-- **TUI interface**: Uses `wesome-gocui/gocui` for a responsive and intuitive layout.
-- **Git Integration**: Your tasks can be easily version controlled, and Tigo includes
-  wrappers to interact with git.
+  directories (`YYYYMMDD-HHmmss`). Portable, grep-able, and git-friendly.
+- **TUI interface**: Uses `awesome-gocui/gocui` for a responsive and intuitive
+  three-panel layout (tasks list, details, logs).
+- **Git Integration**: Tracks session changes and provides a commit dialog with
+  autofilled messages.
+- **Hyperlinks**: Task references (`TASK(20260601-123456)`), URLs, file paths,
+  and tags are recognized and clickable in the details view.
+- **Relative Dates**: Supports "tomorrow", "next week", "3 days", "2 months",
+  etc. when setting due dates.
+- **Search**: RegEx-powered search across title, description, and tags. Filter
+  by tag by clicking on tag hyperlinks.
+- **Clipboard**: Yank individual detail fields or entire lines to the clipboard.
+- **Configurable**: YAML config with per-directory overrides for sort order,
+  default priority, frame style, and showing closed tasks.
 
 Installation
 ------------
@@ -45,6 +55,7 @@ use `$HOME/.local/share/tigo`.
 ### Keybindings (TUI)
 
 - `q` / `Ctrl+C`: Quit Tigo
+- `?`: Show the help dialog
 - `n`: Create a new task
 - `e`: Edit the selected task
 - `d`: Delete the selected task
@@ -52,8 +63,9 @@ use `$HOME/.local/share/tigo`.
 - `j` / `<arrow-down>`: Cursor down in the task list
 - `k` / `<arrow-up>`: Cursor up in the task list
 - `h` / `<arrow-left>`: Move to the previous selectable item / focus tasks list
-- `l` / `<arrow-right>`: Move to the next selectable item
+- `l` / `<arrow-right>`: Move to the next selectable item / details view
 - `g` / `G`: Jump to the top/bottom
+- `L`: Focus the logs view
 - `/`: Search tasks by title, description or tags (supports RegEx)
 - `s`: Sort tasks by priority, due date, ID or title
 - `y`: Yank (copy) the selected task's content to the clipboard
@@ -70,7 +82,7 @@ use `$HOME/.local/share/tigo`.
 Task Format
 -----------
 
-Each task directory contains a TASK.md containing task metadata and a description.
+Each task directory contains a `TASK.md` containing task metadata and a description.
 
 ```md
 # <title-of-the-task>
@@ -82,6 +94,39 @@ Each task directory contains a TASK.md containing task metadata and a descriptio
 
 [description-of-the-task]
 ```
+
+`STATUS` can be `OPEN`, `CLOSED`, or any custom workflow state. `PRIORITY` is an
+integer (higher = more important).
+`DUE` accepts absolute dates (`2026-05-11`, `2026-05-11 23:59`) but you can enter
+relative expressions (`tomorrow`, `next week`, `3 days`, `2 months`) in the TUI.
+
+Configuration
+-------------
+
+Tigo looks for config in this order:
+
+1. `$XDG_CONFIG_HOME/tigo/config.yaml` (or `~/.config/tigo/config.yaml`)
+2. `.tigo/config.yaml` in the current working directory (overrides user config for that directory)
+3. `$HOME/.local/share/tigo/config.yaml`
+
+```yaml
+sort_by: id           # Sort tasks by id, priority, due-date, or title
+default_priority: 50  # The default priority for new tasks
+frame_style: round    # The style of the frames (round, double, single)
+show_completed: false # Whether to show completed tasks in the list by default
+```
+
+Git Integration
+---------------
+
+Tigo tracks every action you take during a session (create, edit, delete,
+toggle status). When you press `c`, it opens a commit dialog with:
+
+- A pre-filled one-line commit message
+- A multi-line description (autofilled with a bullet list when there are
+  multiple changes)
+
+Git commands run by Tigo are logged in the logs view at the bottom-right.
 
 Inspired by
 -----------
