@@ -362,9 +362,7 @@ func updateViews(g *gocui.Gui) error {
 		detailsView.FgColor = gocui.ColorRed
 		fmt.Fprintln(detailsView, "No task selected.")
 	}
-	if g.CurrentView() == detailsView {
-		detailsView.SetCursor(*cx, min(*cy, detailsView.LinesHeight()-2))
-	}
+	detailsView.SetCursor(*cx, min(*cy, detailsView.LinesHeight()-2))
 
 	// logs view
 	logsView, err := g.View("logs")
