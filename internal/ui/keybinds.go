@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 	"tigo/pkg/logs"
-	"unicode/utf8"
 
 	"github.com/awesome-gocui/gocui"
 )
@@ -56,8 +55,8 @@ var bindings []keybinding = []keybinding{
 
 	{[]string{"logs"}, []any{gocui.KeyTab, gocui.KeyEsc}, gocui.ModNone, setCurrentViewCallback("tasks"), "Focus the tasks view", true},
 	{[]string{"logs"}, []any{'h', gocui.KeyArrowLeft}, gocui.ModNone, setCurrentViewCallback("details"), "Focus the details view", true},
-	{[]string{"logs"}, []any{gocui.KeyArrowDown, 'j'}, gocui.ModNone, cursorDown, "Scroll down", true},
-	{[]string{"logs"}, []any{gocui.KeyArrowUp, 'k'}, gocui.ModNone, cursorUp, "Scroll up", true},
+	{[]string{"logs", "help"}, []any{gocui.KeyArrowDown, 'j'}, gocui.ModNone, cursorDown, "Scroll down", true},
+	{[]string{"logs", "help"}, []any{gocui.KeyArrowUp, 'k'}, gocui.ModNone, cursorUp, "Scroll up", true},
 	{[]string{"logs"}, []any{'g'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return v.SetCursor(0, 0) }, "Scroll to the top", true},
 	{[]string{"logs"}, []any{'G'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { h := v.LinesHeight(); return v.SetCursor(1, h-2) }, "Scroll to the bottom", true},
 	{[]string{"logs"}, []any{'C'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { logs.Clear(); return nil }, "Clear all log entries", true},
@@ -105,6 +104,9 @@ func initKeybindings(g *gocui.Gui) error {
 	if err := g.SetKeybinding("", '?', gocui.ModNone, promptHelpKeybindings); err != nil {
 		return fmt.Errorf("bind help key: %w", err)
 	}
+	if err := g.SetKeybinding("", '?', gocui.ModAlt, promptHelpKeybindings); err != nil {
+		return fmt.Errorf("bind alt-help key: %w", err)
+	}
 	return nil
 }
 
@@ -125,21 +127,12 @@ func promptHelpKeybindings(g *gocui.Gui, v *gocui.View) error {
 		var keyStrs []string
 		if len(binding.views) == 0 || slices.Contains(binding.views, currentView) || slices.Contains(binding.views, "") {
 			for _, key := range binding.keys {
-				var keyStr string
-				switch k := key.(type) {
-				case gocui.Key:
-					keyStr = fmt.Sprintf("%s%s%s", "\x1b[1;33m", keyToString(k), "\x1b[0m")
-				case rune:
-					keyStr = fmt.Sprintf("%s%c%s", "\x1b[1;33m", k, "\x1b[0m")
-				default:
-					panic(fmt.Sprintf("invalid key type: %T", key))
-				}
+				keyStr := fmt.Sprintf("%s%s%s", "\x1b[1;33m", keyToString(key, binding.mod), "\x1b[0m")
 				keyStrs = append(keyStrs, keyStr)
 			}
 			text := strings.Join(keyStrs, ", ")
-			cleanText := allANSIRegex.ReplaceAllString(text, "")
 			keyDescriptions = append(keyDescriptions, keysDescription{
-				textLen: utf8.RuneCountInString(cleanText), keysText: text, description: binding.description,
+				textLen: textLen(text), keysText: text, description: binding.description,
 			})
 		}
 	}
@@ -157,31 +150,98 @@ func promptHelpKeybindings(g *gocui.Gui, v *gocui.View) error {
 		fmt.Fprintf(&message, "  %s%s  %s\n", kd.keysText, spaces, kd.description)
 	}
 
-	return promptMessageBox(g, "Help / Keybindings", message.String(), "", false)
+	maxX, maxY := g.Size()
+	width := 0
+	height := 1
+	for line := range strings.SplitSeq(message.String(), "\n") {
+		width = max(width, textLen(line)+4)
+		height++
+	}
+
+	// Check if the help view can fit in the current terminal size
+	if width > maxX {
+		width = maxX - 1
+		message.Reset()
+		for _, kd := range keyDescriptions {
+			// kd.keysText
+			paddingLength := (width - textLen(kd.keysText) - 2) / 2
+			padding := strings.Repeat(" ", paddingLength)
+			fmt.Fprintf(&message, "%s%s%s\n", padding, kd.keysText, padding)
+			// kd.description
+			paddingLength = (width - textLen(kd.description) - 2) / 2
+			padding = strings.Repeat(" ", paddingLength)
+			// I am not sure if I should underline the description to somewhat separate them from the next keybind
+			// White underlined: \x1b[37m;4m
+			desc := fmt.Sprintf("\x1b[37m%s%s", padding, kd.description)
+			fmt.Fprintf(&message, "%s%-*s\x1b[0m\n", desc, width-textLen(desc)-1, " ")
+		}
+	}
+	if height > maxY {
+		height = maxY - 1
+	}
+
+	x0 := maxX/2 - width/2
+	y0 := maxY/2 - height/2
+	if v, err := g.SetView("help", x0, y0, x0+width, y0+height, 0); err != nil {
+		originalCursor := g.Cursor
+		g.Cursor = false
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Title = "Help / Keybindings"
+		v.Editable = false
+		fmt.Fprint(v, message.String())
+		closeHelp := func(g *gocui.Gui, v *gocui.View) error {
+			g.DeleteKeybinding("help", gocui.KeyEnter, gocui.ModNone)
+			g.DeleteKeybinding("help", gocui.KeyEsc, gocui.ModNone)
+			return deleteViewAndSetCurrent(currentView, originalCursor, false)(g, v)
+		}
+		g.SetKeybinding("help", gocui.KeyEnter, gocui.ModNone, closeHelp)
+		g.SetKeybinding("help", gocui.KeyEsc, gocui.ModNone, closeHelp)
+	}
+	_, err := g.SetCurrentView("help")
+	return err
 }
 
 // keyToString converts a gocui.Key to a human-readable string, using Unicode arrows for the arrow keys and angle brackets for special keys.
-func keyToString(key gocui.Key) string {
-	switch key {
-	case gocui.KeyArrowLeft:
-		return "\u2190"
-	case gocui.KeyArrowUp:
-		return "\u2191"
-	case gocui.KeyArrowRight:
-		return "\u2192"
-	case gocui.KeyArrowDown:
-		return "\u2193"
-	case gocui.KeyTab:
-		return "<tab>"
-	case gocui.KeyEsc:
-		return "<esc>"
-	case gocui.KeyEnter:
-		return "<enter>"
-	case gocui.KeySpace:
-		return "<space>"
-	case gocui.KeyCtrlC:
-		return "<ctrl+c>"
-	default:
-		return fmt.Sprintf("%v", key)
+func keyToString(key any, mod gocui.Modifier) string {
+	text := ""
+	switch mod {
+	case gocui.ModShift:
+		text += "Shift+"
+	case gocui.ModAlt:
+		text += "Alt+"
+	case gocui.ModMouseCtrl:
+		text += "MouseCtrl+"
 	}
+	switch k := key.(type) {
+	case rune:
+		text += fmt.Sprintf("%c", k)
+	case gocui.Key:
+		switch key {
+		case gocui.KeyArrowLeft:
+			text += "\u2190"
+		case gocui.KeyArrowUp:
+			text += "\u2191"
+		case gocui.KeyArrowRight:
+			text += "\u2192"
+		case gocui.KeyArrowDown:
+			text += "\u2193"
+		case gocui.KeyTab:
+			text += "<tab>"
+		case gocui.KeyEsc:
+			text += "<esc>"
+		case gocui.KeyEnter:
+			text += "<enter>"
+		case gocui.KeySpace:
+			text += "<space>"
+		case gocui.KeyCtrlC:
+			text += "<ctrl+c>"
+		default:
+			text += fmt.Sprintf("%v", key)
+		}
+	default:
+		panic(fmt.Sprintf("invalid key type: %T", key))
+	}
+	return text
 }

@@ -252,7 +252,7 @@ func layout(g *gocui.Gui) error {
 		g.DeleteView("logs")
 	}
 
-	if v, err := g.SetView("help", -1, maxY-2, maxX, maxY, 0); err != nil {
+	if v, err := g.SetView("statusBar", -1, maxY-2, maxX, maxY, 0); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -284,7 +284,7 @@ func updateViews(g *gocui.Gui) error {
 	if err != nil {
 		return err
 	}
-	helpView, err := g.View("help")
+	statusBarView, err := g.View("statusBar")
 	if err != nil {
 		return err
 	}
@@ -403,7 +403,7 @@ func updateViews(g *gocui.Gui) error {
 		logsView.SetCursor(cx, min(cy, logsView.LinesHeight()-2))
 	}
 
-	// help view
+	// status-bar view
 	var (
 		spaceKeyText string
 		hKeyText     string
@@ -425,10 +425,33 @@ func updateViews(g *gocui.Gui) error {
 	} else {
 		hKeyText = "Show"
 	}
-	helpText := fmt.Sprintf("%s ?: Help | e: Edit | d: Delete %s| H: %s CLOSED | /: Search | c: Commit | \u2193/\u2191 j/k: Navigate | g/G: Top/Bottom", gitStatusString(), spaceKeyText, hKeyText)
-	if helpText != helpView.Buffer() {
-		helpView.Clear()
-		fmt.Fprint(helpView, helpText)
+	statusText := fmt.Sprintf("%s ?: Help | e: Edit | d: Delete %s| H: %s CLOSED | /: Search | c: Commit | \u2193/\u2191 j/k: Navigate | g/G: Top/Bottom", gitStatusString(), spaceKeyText, hKeyText)
+	if statusText != statusBarView.Buffer() {
+		statusBarView.Clear()
+		fmt.Fprint(statusBarView, statusText)
+	}
+
+	// help view
+	helpView, err := g.View("help")
+	if err == nil {
+		if g.CurrentView() != helpView {
+			g.DeleteView("help")
+		}
+		_, cy := helpView.Cursor()
+		_, oy = tasksView.Origin()
+		_, helpHeight := helpView.Size()
+		cy = max(cy, helpHeight-3)
+		if cy < oy+3 {
+			oy = cy - 3
+		}
+		if cy > oy+helpHeight-3 {
+			oy = cy - helpHeight + 3
+		}
+		if oy < 0 {
+			oy = 0
+		}
+		helpView.SetOrigin(0, oy)
+		helpView.SetCursor(0, min(cy, helpView.LinesHeight()-2))
 	}
 
 	return nil

@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"tigo/pkg/db"
 	"tigo/pkg/task"
@@ -519,8 +518,7 @@ func promptMessageBox(g *gocui.Gui, title, message, focusView string, focusCurso
 	width := 0
 	height := 1
 	for line := range strings.SplitSeq(message, "\n") {
-		cleanLine := allANSIRegex.ReplaceAllString(line, "")
-		width = max(width, utf8.RuneCountInString(cleanLine)+4)
+		width = max(width, textLen(line)+4)
 		height++
 	}
 	x0 := maxX/2 - width/2

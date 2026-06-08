@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"tigo/pkg/db"
 	"tigo/pkg/logs"
@@ -121,7 +122,7 @@ func centeredFprintf(v *gocui.View, format string, a ...any) (int, error) {
 	trimmedLine := strings.TrimRight(line, "\n")
 	trailingNewLines := line[len(trimmedLine):]
 	width, _ := v.Size()
-	paddingLength := (width - len(line)) / 2
+	paddingLength := (width - textLen(trimmedLine)) / 2
 	padding := strings.Repeat(" ", paddingLength)
 	_, err := fmt.Fprintf(v, "%s%s%s%s", padding, trimmedLine, padding, trailingNewLines)
 	return paddingLength, err
@@ -213,6 +214,12 @@ func oneLineEditor(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
 
 func showCurrentTigoDirectory(g *gocui.Gui, v *gocui.View) error {
 	return promptMessageBox(g, "Current Tigo Directory", tigoRoot, "", false)
+}
+
+// textLen returns the length of the text without counting ANSI escape codes.
+// It uses utf8.RuneCountInString to count the number of runes, which correctly handles multi-byte characters.
+func textLen(text string) (length int) {
+	return utf8.RuneCountInString(allANSIRegex.ReplaceAllString(text, ""))
 }
 
 // parseRelativeDateTime takes a string like:
