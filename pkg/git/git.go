@@ -2,6 +2,7 @@
 package git
 
 import (
+	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -127,7 +128,15 @@ func HasNonTaskChanges(rootDir string) (bool, error) {
 
 // BlameTask returns the time of last change and who's to blame for the change for each line of a `TASK.md`
 func BlameTask(rootDir, taskID string) ([]time.Time, []string, error) {
-	out, err := RunGitCommand(rootDir, "blame", "--line-porcelain", taskID+"/TASK.md")
+	taskFile := taskID + "/TASK.md"
+
+	// Check if the file is tracked by git; blame fails with exit 128 for untracked files
+	out, err := RunGitCommandQuiet(rootDir, "ls-files", taskFile)
+	if err != nil || strings.TrimSpace(out) == "" {
+		return nil, nil, fmt.Errorf("task %s is not tracked by git yet", taskID)
+	}
+
+	out, err = RunGitCommand(rootDir, "blame", "--line-porcelain", taskFile)
 	if err != nil {
 		return nil, nil, err
 	}

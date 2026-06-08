@@ -22,11 +22,11 @@ type Task struct {
 }
 
 var (
-	titleRegex    = regexp.MustCompile(`^#\s+(.*)$`)
-	statusRegex   = regexp.MustCompile(`^- STATUS:\s*(.*)$`)
-	priorityRegex = regexp.MustCompile(`^- PRIORITY:\s*([0-9]+)$`)
-	tagsRegex     = regexp.MustCompile(`^- TAGS:\s*(.*)$`)
-	dueDateRegex  = regexp.MustCompile(`^- DUE:\s*(.*)$`)
+	TitleRegex    = regexp.MustCompile(`^#\s+(.*)$`)
+	StatusRegex   = regexp.MustCompile(`^- STATUS:\s*(.*)$`)
+	PriorityRegex = regexp.MustCompile(`^- PRIORITY:\s*([0-9]+)$`)
+	TagsRegex     = regexp.MustCompile(`^- TAGS:\s*(.*)$`)
+	DueDateRegex  = regexp.MustCompile(`^- DUE:\s*(.*)$`)
 
 	// Errors
 	ErrInvalidTitle = errors.New("invalid title value")
@@ -56,24 +56,24 @@ func Parse(id, filePath string) (*Task, error) {
 		line := scanner.Text()
 		t.RawLines = append(t.RawLines, line)
 
-		if titleRegex.MatchString(line) && t.Title == "" {
-			t.Title = strings.TrimSpace(titleRegex.FindStringSubmatch(line)[1])
+		if TitleRegex.MatchString(line) && t.Title == "" {
+			t.Title = strings.TrimSpace(TitleRegex.FindStringSubmatch(line)[1])
 			continue
 		}
 
-		if statusRegex.MatchString(line) {
-			t.Status = strings.TrimSpace(statusRegex.FindStringSubmatch(line)[1])
+		if StatusRegex.MatchString(line) {
+			t.Status = strings.TrimSpace(StatusRegex.FindStringSubmatch(line)[1])
 			continue
 		}
 
-		if priorityRegex.MatchString(line) {
-			p, _ := strconv.Atoi(priorityRegex.FindStringSubmatch(line)[1])
+		if PriorityRegex.MatchString(line) {
+			p, _ := strconv.Atoi(PriorityRegex.FindStringSubmatch(line)[1])
 			t.Priority = p
 			continue
 		}
 
-		if tagsRegex.MatchString(line) {
-			tagsStr := tagsRegex.FindStringSubmatch(line)[1]
+		if TagsRegex.MatchString(line) {
+			tagsStr := TagsRegex.FindStringSubmatch(line)[1]
 			parts := strings.SplitSeq(tagsStr, ",")
 			for p := range parts {
 				tag := strings.TrimSpace(p)
@@ -84,8 +84,8 @@ func Parse(id, filePath string) (*Task, error) {
 			continue
 		}
 
-		if dueDateRegex.MatchString(line) {
-			t.DueDate = strings.TrimSpace(dueDateRegex.FindStringSubmatch(line)[1])
+		if DueDateRegex.MatchString(line) {
+			t.DueDate = strings.TrimSpace(DueDateRegex.FindStringSubmatch(line)[1])
 			continue
 		}
 

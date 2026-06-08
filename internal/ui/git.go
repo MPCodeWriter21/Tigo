@@ -2,9 +2,12 @@ package ui
 
 import (
 	"fmt"
+	"sort"
 	"strings"
+	"time"
 
 	"tigo/pkg/git"
+	"tigo/pkg/task"
 
 	"github.com/awesome-gocui/gocui"
 )
@@ -149,7 +152,7 @@ func promptCommit(g *gocui.Gui, v *gocui.View) error {
 		return promptMessageBox(g, "Not a Git Repo", "\x1b[31mThe current tigo directory is not in a git repository.\x1b[0m", "", false)
 	}
 	updateGitState()
-	if !gitDirty && len(sessionChanges) == 0 {
+	if !gitDirty {
 		return promptMessageBox(g, "Nothing to Commit", "\x1b[33mNo uncommitted changes and no session changes to commit.\x1b[0m", "", false)
 	}
 
@@ -233,4 +236,160 @@ func closeCommitDialog(g *gocui.Gui, v *gocui.View) error {
 	}
 	_, err := g.SetCurrentView("tasks")
 	return err
+}
+
+func showTaskBlame(g *gocui.Gui, v *gocui.View) error {
+	if len(tasks) == 0 || selectedTask >= len(tasks) {
+		return nil
+	}
+	t := tasks[selectedTask]
+
+	times, names, err := git.BlameTask(tigoRoot, t.ID)
+	if err != nil {
+		return promptMessageBox(g, "Blame Error", fmt.Sprintf("\x1b[31m%s\x1b[0m", err), "", false)
+	}
+	if len(names) == 0 {
+		return promptMessageBox(g, "Blame Summary", "\x1b[33mNo blame data available (file may not be committed yet).\x1b[0m", "", false)
+	}
+
+	type authorStat struct {
+		count    int
+		lastTime time.Time
+	}
+	authors := make(map[string]*authorStat)
+	for i, name := range names {
+		s, ok := authors[name]
+		if !ok {
+			s = &authorStat{}
+			authors[name] = s
+		}
+		s.count++
+		if times[i].After(s.lastTime) {
+			s.lastTime = times[i]
+		}
+	}
+
+	var sorted []struct {
+		name string
+		stat *authorStat
+	}
+	for name, stat := range authors {
+		sorted = append(sorted, struct {
+			name string
+			stat *authorStat
+		}{name, stat})
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].stat.count > sorted[j].stat.count
+	})
+
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "\x1b[1;36mTask\x1b[0m: %s\n", t.ID)
+	fmt.Fprintf(&sb, "\x1b[1;36mLines\x1b[0m: %d\n\n", len(names))
+	fmt.Fprintf(&sb, "\x1b[1;36mContributors\x1b[0m:\n")
+	for _, s := range sorted {
+		fmt.Fprintf(&sb, "  \x1b[33m%s\x1b[0m: %d lines (%s)\n", s.name, s.stat.count, s.stat.lastTime.Format("2006-01-02"))
+	}
+
+	return promptMessageBox(g, "Blame Summary", sb.String(), "", false)
+}
+
+func showLineBlame(g *gocui.Gui, v *gocui.View) error {
+	if len(tasks) == 0 || selectedTask >= len(tasks) {
+		return nil
+	}
+	t := tasks[selectedTask]
+	_, cy := v.Cursor()
+
+	lineText, err := v.Line(cy)
+	if err != nil {
+		return nil
+	}
+
+	times, names, err := git.BlameTask(tigoRoot, t.ID)
+	if err != nil {
+		return promptMessageBox(g, "Blame Error", fmt.Sprintf("\x1b[31m%s\x1b[0m", err), "", false)
+	}
+	if len(names) == 0 {
+		return nil
+	}
+
+	// Locate each metadata field in RawLines by prefix
+	var titleIdx, statusIdx, priorityIdx, tagsIdx, dueIdx = -1, -1, -1, -1, -1
+	for i, raw := range t.RawLines {
+		switch {
+		case task.TitleRegex.MatchString(raw):
+			titleIdx = i
+		case task.StatusRegex.MatchString(raw):
+			statusIdx = i
+		case task.PriorityRegex.MatchString(raw):
+			priorityIdx = i
+		case task.TagsRegex.MatchString(raw):
+			tagsIdx = i
+		case task.DueDateRegex.MatchString(raw):
+			dueIdx = i
+		}
+	}
+
+	// Build detail view cy -> RawLines index for the metadata section
+	// cy=0: ID -> not a TASK.md line (sentinel -1)
+	detailToRaw := []int{-1}
+	detailToRaw = append(detailToRaw, titleIdx)    // cy=1: Title
+	detailToRaw = append(detailToRaw, statusIdx)   // cy=2: Status
+	detailToRaw = append(detailToRaw, priorityIdx) // cy=3: Priority
+	if t.DueDate != "" {
+		detailToRaw = append(detailToRaw, dueIdx) // cy=4: Due Date
+	}
+	detailToRaw = append(detailToRaw, tagsIdx) // cy=4 or 5: Tags
+	detailToRaw = append(detailToRaw, -1)      // blank line (visual only)
+	detailToRaw = append(detailToRaw, -1)      // "Description:" header (visual only)
+
+	var taskLine int
+
+	if cy < len(detailToRaw) {
+		taskLine = detailToRaw[cy]
+		if taskLine < 0 {
+			return showTaskBlame(g, v)
+		}
+	} else {
+		// Find first description line in RawLines (first non-empty, non-metadata line)
+		descStart := len(t.RawLines)
+		for i, raw := range t.RawLines {
+			if strings.HasPrefix(raw, "# ") {
+				continue
+			}
+			if strings.HasPrefix(raw, "- STATUS:") || strings.HasPrefix(raw, "- PRIORITY:") ||
+				strings.HasPrefix(raw, "- TAGS:") || strings.HasPrefix(raw, "- DUE:") {
+				continue
+			}
+			if strings.TrimSpace(raw) == "" {
+				continue
+			}
+			descStart = i
+			break
+		}
+
+		descLineIndex := cy - len(detailToRaw)
+		taskLine = descStart + descLineIndex
+		if taskLine >= len(t.RawLines) {
+			return nil
+		}
+	}
+
+	if taskLine < 0 || taskLine >= len(names) {
+		return nil
+	}
+
+	author := names[taskLine]
+	lastMod := times[taskLine].Format("2006-01-02 15:04:05")
+	cleanLine := strings.TrimSpace(allANSIRegex.ReplaceAllString(lineText, ""))
+
+	msg := fmt.Sprintf(
+		"\x1b[1;36mLine %d\x1b[0m (TASK.md:%d)\n\n"+
+			"\x1b[33mAuthor\x1b[0m: %s\n"+
+			"\x1b[33mDate\x1b[0m:   %s\n\n"+
+			"\x1b[1;37m%s\x1b[0m",
+		cy, taskLine+1, author, lastMod, cleanLine)
+
+	return promptMessageBox(g, "Line Blame", msg, "", false)
 }

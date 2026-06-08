@@ -11,13 +11,14 @@ Features
 - **TUI interface**: Uses `awesome-gocui/gocui` for a responsive and intuitive
   three-panel layout (tasks list, details, logs).
 - **Git Integration**: Tracks session changes and provides a commit dialog with
-  autofilled messages.
+  auto-filled messages.
 - **Hyperlinks**: Task references (`TASK(20260601-123456)`), URLs, file paths,
   and tags are recognized and clickable in the details view.
 - **Relative Dates**: Supports "tomorrow", "next week", "3 days", "2 months",
   etc. when setting due dates.
 - **Search**: RegEx-powered search across title, description, and tags. Filter
   by tag by clicking on tag hyperlinks.
+- **Git Blame**: Per-line and per-task blame information via `git blame`.
 - **Clipboard**: Yank individual detail fields or entire lines to the clipboard.
 - **Configurable**: YAML config with per-directory overrides for sort order,
   default priority, frame style, and showing closed tasks.
@@ -66,6 +67,7 @@ use `$HOME/.local/share/tigo`.
 - `l` / `<arrow-right>`: Move to the next selectable item / details view
 - `g` / `G`: Jump to the top/bottom
 - `L`: Focus the logs view
+- `b`: Show blame summary for the selected task or line
 - `/`: Search tasks by title, description or tags (supports RegEx)
 - `s`: Sort tasks by priority, due date, ID or title
 - `y`: Yank (copy) the selected task's content to the clipboard

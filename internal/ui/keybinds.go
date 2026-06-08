@@ -32,6 +32,8 @@ var bindings []keybinding = []keybinding{
 	{[]string{"tasks"}, []any{'a', 'n'}, gocui.ModNone, promptCreateTask, "Create a new task", true},
 	{[]string{"tasks"}, []any{'d'}, gocui.ModNone, promptDeleteTask, "Delete the selected task", true},
 	{[]string{"tasks", "details"}, []any{'e'}, gocui.ModNone, promptEditTask, "Edit the selected task", true},
+	{[]string{"tasks"}, []any{'b'}, gocui.ModNone, showTaskBlame, "Show blame summary", true},
+	{[]string{"details"}, []any{'b'}, gocui.ModNone, showLineBlame, "Show blame for the current line", true},
 	{[]string{"tasks"}, []any{'s'}, gocui.ModNone, promptSort, "Sort tasks", true},
 	{[]string{"tasks"}, []any{'g'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selectedTask = 0; return updateViews(g) }, "Move to the top", true},
 	{[]string{"tasks"}, []any{'G'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { selectedTask = len(tasks) - 1; return updateViews(g) }, "Move to the bottom", true},
