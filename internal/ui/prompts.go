@@ -51,7 +51,7 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 }
 
 func promptEditTask(g *gocui.Gui, v *gocui.View) error {
-	if len(tasks) == 0 && selectedTask > len(tasks) {
+	if len(tasks) == 0 || selectedTask >= len(tasks) || selectedTask < 0 {
 		return nil
 	}
 	t := tasks[selectedTask]
@@ -332,7 +332,7 @@ func closePromptTaskDialog(g *gocui.Gui, _ *gocui.View) error {
 }
 
 func promptDeleteTask(g *gocui.Gui, v *gocui.View) error {
-	if len(tasks) == 0 {
+	if len(tasks) == 0 || selectedTask >= len(tasks) || selectedTask < 0 {
 		return nil
 	}
 

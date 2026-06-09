@@ -275,7 +275,7 @@ func closeCommitDialog(g *gocui.Gui, v *gocui.View) error {
 }
 
 func showTaskBlame(g *gocui.Gui, v *gocui.View) error {
-	if len(tasks) == 0 || selectedTask >= len(tasks) {
+	if len(tasks) == 0 || selectedTask >= len(tasks) || selectedTask < 0 {
 		return nil
 	}
 	t := tasks[selectedTask]
@@ -331,7 +331,7 @@ func showTaskBlame(g *gocui.Gui, v *gocui.View) error {
 }
 
 func showLineBlame(g *gocui.Gui, v *gocui.View) error {
-	if len(tasks) == 0 || selectedTask >= len(tasks) {
+	if len(tasks) == 0 || selectedTask >= len(tasks) || selectedTask >= 0 {
 		return nil
 	}
 	t := tasks[selectedTask]

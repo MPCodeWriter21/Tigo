@@ -44,22 +44,23 @@ func deleteViewAndSetCurrent(viewName string, cursor bool, deleteKeybindings boo
 var deleteViewDefault = deleteViewAndSetCurrent("tasks", false, false)
 
 func toggleTaskStatus(g *gocui.Gui, v *gocui.View) error {
-	if len(tasks) > 0 && selectedTask < len(tasks) {
-		t := tasks[selectedTask]
-		oldStatus := t.Status
-		_, err := db.ToggleStatus(tigoRoot, t)
-		if err == nil && oldStatus != t.Status {
-			switch t.Status {
-			case "OPEN":
-				trackChange("Open", t.ID, t.Title, "")
-			case "CLOSED":
-				trackChange("Close", t.ID, t.Title, "")
-			default:
-				trackChange("Update", t.ID, t.Title, fmt.Sprintf("Status: %s -> %s", oldStatus, t.Status))
-			}
+	if len(tasks) == 0 || selectedTask >= len(tasks) || selectedTask < 0 {
+		return nil
+	}
+	t := tasks[selectedTask]
+	oldStatus := t.Status
+	_, err := db.ToggleStatus(tigoRoot, t)
+	if err == nil && oldStatus != t.Status {
+		switch t.Status {
+		case "OPEN":
+			trackChange("Open", t.ID, t.Title, "")
+		case "CLOSED":
+			trackChange("Close", t.ID, t.Title, "")
+		default:
+			trackChange("Update", t.ID, t.Title, fmt.Sprintf("Status: %s -> %s", oldStatus, t.Status))
 		}
 	}
-	return nil
+	return err
 }
 
 func cursorDown(g *gocui.Gui, v *gocui.View) error {

@@ -187,7 +187,7 @@ func loadTasks() error {
 	default:
 		return fmt.Errorf("invalid sort option: %s", cfg.SortBy)
 	}
-	selectedTask = min(selectedTask, len(tasks)-1)
+	selectedTask = max(min(selectedTask, len(tasks)-1), 0)
 	return nil
 }
 
@@ -473,7 +473,7 @@ func tasksUp(g *gocui.Gui, v *gocui.View) error {
 
 func toggleShowClosed(g *gocui.Gui, v *gocui.View) error {
 	cfg.ShowClosed = !cfg.ShowClosed
-	if len(tasks) != 0 && selectedTask < len(tasks) {
+	if len(tasks) != 0 && selectedTask < len(tasks) && selectedTask >= 0 {
 		task := tasks[selectedTask]
 		if task.Status != "CLOSED" {
 			// Make sure the previously selected task is still selected after reloading tasks, if it still exists.
