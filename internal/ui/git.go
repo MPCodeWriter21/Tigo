@@ -4,17 +4,28 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"tigo/pkg/git"
+	"tigo/pkg/logs"
 	"tigo/pkg/task"
 
 	"github.com/awesome-gocui/gocui"
 )
 
+const (
+	gitOpNone = iota
+	gitOpPull
+	gitOpPush
+)
+
 var (
-	gitRepo  = false
-	gitDirty = false
+	gitRepo         = false
+	gitDirty        = false
+	gitAhead        = 0
+	gitBehind       = 0
+	gitOpInProgress atomic.Int64
 )
 
 type sessionChange struct {
@@ -132,8 +143,11 @@ func updateGitState() {
 	if gitRepo {
 		dirty, err := git.IsDirty(tigoRoot)
 		gitDirty = err == nil && dirty
+		gitAhead, gitBehind = git.AheadBehind(tigoRoot)
 	} else {
 		gitDirty = false
+		gitAhead = 0
+		gitBehind = 0
 	}
 }
 
@@ -141,10 +155,32 @@ func gitStatusString() string {
 	if !gitRepo {
 		return ""
 	}
-	if gitDirty {
-		return "\x1b[33m\u25cf uncommitted\x1b[0m"
+	var sb strings.Builder
+
+	switch op := gitOpInProgress.Load(); op {
+	case gitOpPull:
+		sb.WriteString("\x1b[35mpull")
+	case gitOpPush:
+		sb.WriteString("\x1b[35mpush")
+	default:
+		if gitBehind > 0 || gitAhead > 0 {
+			sb.WriteString("\x1b[33m")
+			if gitBehind > 0 {
+				fmt.Fprintf(&sb, "\u2193%d", gitBehind)
+			}
+			if gitAhead > 0 {
+				fmt.Fprintf(&sb, "\u2191%d", gitAhead)
+			}
+		}
 	}
-	return "\x1b[32m\u25cf clean\x1b[0m"
+	sb.WriteString("\x1b[0m ")
+
+	if gitDirty {
+		sb.WriteString("\x1b[33m\u25cf uncommitted\x1b[0m")
+	} else {
+		sb.WriteString("\x1b[32m\u25cf clean\x1b[0m")
+	}
+	return sb.String()
 }
 
 func promptCommit(g *gocui.Gui, v *gocui.View) error {
@@ -428,4 +464,48 @@ func showLineBlame(g *gocui.Gui, v *gocui.View) error {
 		cy, taskLine+1, author, lastMod, cleanLine)
 
 	return promptMessageBox(g, "Line Blame", msg, "", false)
+}
+
+func gitPull(g *gocui.Gui, v *gocui.View) error {
+	if !gitRepo {
+		return nil
+	}
+	if !gitOpInProgress.CompareAndSwap(gitOpNone, gitOpPull) {
+		return promptMessageBox(g, "Git Operation",
+			"\x1b[33mA push or pull is already in progress.\x1b[0m", "", false)
+	}
+	go func() {
+		defer gitOpInProgress.Store(gitOpNone)
+		out, err := git.RunGitCommand(tigoRoot, "pull", "--no-edit")
+		updateGitState()
+		if err != nil {
+			logs.Append(logs.LevelError, "Pull failed: %v\n%s", err, out)
+		} else {
+			logs.Append(logs.LevelGit, "Pull completed successfully:\n%s", out)
+		}
+		g.Update(updateViews)
+	}()
+	return updateViews(g)
+}
+
+func gitPush(g *gocui.Gui, v *gocui.View) error {
+	if !gitRepo {
+		return nil
+	}
+	if !gitOpInProgress.CompareAndSwap(gitOpNone, gitOpPush) {
+		return promptMessageBox(g, "Git Operation",
+			"\x1b[33mA push or pull is already in progress.\x1b[0m", "", false)
+	}
+	go func() {
+		defer gitOpInProgress.Store(gitOpNone)
+		out, err := git.RunGitCommand(tigoRoot, "push")
+		updateGitState()
+		if err != nil {
+			logs.Append(logs.LevelError, "Push failed: %v\n%s", err, out)
+		} else {
+			logs.Append(logs.LevelGit, "Push completed successfully:\n%s", out)
+		}
+		g.Update(updateViews)
+	}()
+	return updateViews(g)
 }

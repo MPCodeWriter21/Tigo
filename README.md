@@ -12,13 +12,14 @@ Features
   three-panel layout (tasks list, details, logs).
 - **Git Integration**: Tracks session changes and provides a commit dialog with
   auto-filled messages.
+- **Git Blame**: Per-line metadata and description blame via `git blame`,
+  accessible with the `b` keybinding from any view.
 - **Hyperlinks**: Task references (`TASK(20260601-123456)`), URLs, file paths,
   and tags are recognized and clickable in the details view.
 - **Relative Dates**: Supports "tomorrow", "next week", "3 days", "2 months",
   etc. when setting due dates.
 - **Search**: RegEx-powered search across title, description, and tags. Filter
   by tag by clicking on tag hyperlinks.
-- **Git Blame**: Per-line and per-task blame information via `git blame`.
 - **Clipboard**: Yank individual detail fields or entire lines to the clipboard.
 - **Configurable**: YAML config with per-directory overrides for sort order,
   default priority, frame style, and showing closed tasks.
@@ -68,6 +69,8 @@ use `$HOME/.local/share/tigo`.
 - `g` / `G`: Jump to the top/bottom
 - `L`: Focus the logs view
 - `b`: Show blame summary for the selected task or line
+- `p`: Push local commits to the remote
+- `P`: Pull commits from the remote
 - `/`: Search tasks by title, description or tags (supports RegEx)
 - `s`: Sort tasks by priority, due date, ID or title
 - `y`: Yank (copy) the selected task's content to the clipboard
@@ -121,14 +124,18 @@ show_completed: false # Whether to show completed tasks in the list by default
 Git Integration
 ---------------
 
-Tigo tracks every action you take during a session (create, edit, delete,
-toggle status). When you press `c`, it opens a commit dialog with:
+Tigo tracks session changes (create, edit, delete, toggle) and autofills the
+commit dialog. The dialog has three panels: a file list, commit subject,
+and description body. Tab cycles through them.
 
-- A pre-filled one-line commit message
-- A multi-line description (autofilled with a bullet list when there are
-  multiple changes)
+At startup, Tigo fetches from the remote for all git repos. The status bar
+shows `↓N↑M` when ahead/behind, or `push`/`pull` during background operations.
+`p` pulls, `P` pushes.
 
-Git commands run by Tigo are logged in the logs view at the bottom-right.
+Press `b` for git blame: task-level summary in the tasks view, per-line blame
+in the details view.
+
+Git commands are logged in the logs view (`L` to focus, `C` to clear).
 
 Inspired by
 -----------

@@ -102,6 +102,14 @@ func setCurrentViewCallback(name string) func(*gocui.Gui, *gocui.View) error {
 	}
 }
 
+func setCurrentViewCallbackCursor(name string, cursor bool) func(*gocui.Gui, *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		g.Cursor = cursor
+		_, err := g.SetCurrentView(name)
+		return err
+	}
+}
+
 // Works the same as fmt.Fprintf, except if searchQuery is set, it highlights the matching text in the view.
 func searchedFprintf(v *gocui.View, format string, a ...any) {
 	// FIXME: Some queries match the already existing ANSI escape codes, which causes

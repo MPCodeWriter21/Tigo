@@ -164,3 +164,24 @@ func BlameTask(rootDir, taskID string) ([]time.Time, []string, error) {
 
 	return times, names, nil
 }
+
+// AheadBehind returns the number of commits ahead of and behind the upstream
+// tracking branch. Returns 0, 0 if there is no upstream or on error.
+func AheadBehind(rootDir string) (ahead, behind int) {
+	out, err := RunGitCommandQuiet(rootDir, "rev-parse", "--abbrev-ref", "@{upstream}")
+	if err != nil || strings.TrimSpace(out) == "" {
+		return 0, 0
+	}
+
+	out, err = RunGitCommandQuiet(rootDir, "rev-list", "--count", "--left-right", "@{upstream}...HEAD")
+	if err != nil {
+		return 0, 0
+	}
+
+	parts := strings.Split(strings.TrimSpace(out), "\t")
+	if len(parts) == 2 {
+		behind, _ = strconv.Atoi(parts[0])
+		ahead, _ = strconv.Atoi(parts[1])
+	}
+	return ahead, behind
+}

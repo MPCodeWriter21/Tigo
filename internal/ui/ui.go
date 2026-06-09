@@ -89,22 +89,21 @@ func Run(root string, conf *config.TigoConfig) error {
 		return err
 	}
 
-	// Auto fetch in the background if using the default tigo directory
-	defaultTigoDir, _ := config.DefaultTigoDir()
-	if tigoRoot == defaultTigoDir {
+	updateGitState()
+	if gitRepo {
 		go func() {
 			logs.Append(logs.LevelGit, "Fetching from remote...")
 			out, err := git.RunGitCommand(tigoRoot, "fetch", "--quiet")
 			if err != nil {
-				logs.Append(logs.LevelWarn, "Fetch failed: %v", err)
+				logs.Append(logs.LevelWarn, "Fetch failed: %v\n%s", err, out)
 			} else if out != "" {
 				logs.Append(logs.LevelGit, "Fetch: %s", out)
 			} else {
-				logs.Append(logs.LevelGit, "Fetch completed")
+				logs.Append(logs.LevelGit, "Fetch completed.")
 			}
+			gitAhead, gitBehind = git.AheadBehind(tigoRoot)
 		}()
 	}
-	updateGitState()
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		return err
@@ -425,7 +424,9 @@ func updateViews(g *gocui.Gui) error {
 	} else {
 		hKeyText = "Show"
 	}
-	statusText := fmt.Sprintf("%s ?: Help | e: Edit | d: Delete %s| H: %s CLOSED | /: Search | c: Commit | \u2193/\u2191 j/k: Navigate | g/G: Top/Bottom", gitStatusString(), spaceKeyText, hKeyText)
+	statusText := fmt.Sprintf(
+		"%s ?: Help | e: Edit | d: Delete %s| H: %s CLOSED | /: Search | c: Commit | \u2193/\u2191 j/k: Navigate | g/G: Top/Bottom",
+		gitStatusString(), spaceKeyText, hKeyText)
 	if statusText != statusBarView.Buffer() {
 		statusBarView.Clear()
 		fmt.Fprint(statusBarView, statusText)
