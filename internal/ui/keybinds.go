@@ -79,9 +79,15 @@ var bindings []keybinding = []keybinding{
 
 	{[]string{"commitSubject"}, []any{gocui.KeyEnter}, gocui.ModNone, submitCommit, "Submit the commit message", true},
 	{[]string{"commitBody"}, []any{gocui.KeyEnter}, gocui.ModShift, submitCommit, "Submit the commit message", true},
+	{[]string{"commitFiles"}, []any{gocui.KeyEnter}, gocui.ModNone, submitCommit, "Submit the commit message", true},
 	{[]string{"commitSubject"}, []any{gocui.KeyTab}, gocui.ModNone, setCurrentViewCallback("commitBody"), "Switch to the commit description field", true},
-	{[]string{"commitBody"}, []any{gocui.KeyTab}, gocui.ModNone, setCurrentViewCallback("commitSubject"), "Switch to the commit message field", true},
-	{[]string{"commitSubject", "commitBody"}, []any{gocui.KeyEsc}, gocui.ModNone, closeCommitDialog, "Close the commit dialog", true},
+	{[]string{"commitBody"}, []any{gocui.KeyTab}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { g.Cursor = false; _, err := g.SetCurrentView("commitFiles"); return err }, "Switch to the file list", true},
+	{[]string{"commitFiles"}, []any{gocui.KeyTab}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { g.Cursor = true; _, err := g.SetCurrentView("commitSubject"); return err }, "Switch to the commit message field", true},
+	{[]string{"commitFiles"}, []any{'j', gocui.KeyArrowDown}, gocui.ModNone, cursorDown, "Scroll down", true},
+	{[]string{"commitFiles"}, []any{'k', gocui.KeyArrowUp}, gocui.ModNone, cursorUp, "Scroll up", true},
+	{[]string{"commitFiles"}, []any{'g'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return v.SetCursor(0, 0) }, "Scroll to the top", true},
+	{[]string{"commitFiles"}, []any{'G'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { h := v.LinesHeight(); return v.SetCursor(1, h-2) }, "Scroll to the bottom", true},
+	{[]string{"commitSubject", "commitBody", "commitFiles"}, []any{gocui.KeyEsc}, gocui.ModNone, closeCommitDialog, "Close the commit dialog", true},
 
 	{[]string{""}, []any{gocui.KeyCtrlC, 'q'}, gocui.ModNone, quit, "Quit the application", true},
 }

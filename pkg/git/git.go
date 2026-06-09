@@ -27,7 +27,7 @@ func RunGitCommand(dir string, args ...string) (string, error) {
 
 	logs.Append(logs.LevelGit, "git %s", strings.Join(args, " "))
 	output, err := cmd.CombinedOutput()
-	return strings.TrimSpace(string(output)), err
+	return strings.TrimRight(string(output), " \t\r\n\v\f"), err
 }
 
 // RunGitCommandQuiet is like RunGitCommand but does not log the command.
@@ -36,7 +36,7 @@ func RunGitCommandQuiet(dir string, args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
-	return strings.TrimSpace(string(output)), err
+	return strings.TrimRight(string(output), " \t\r\n\v\f"), err
 }
 
 // IsGitRepo checks if the given directory is within a git repository.

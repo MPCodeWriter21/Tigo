@@ -156,19 +156,58 @@ func promptCommit(g *gocui.Gui, v *gocui.View) error {
 		return promptMessageBox(g, "Nothing to Commit", "\x1b[33mNo uncommitted changes and no session changes to commit.\x1b[0m", "", false)
 	}
 
+	statusOut, _ := git.RunGitCommandQuiet(tigoRoot, "status", "--porcelain", ".")
+
 	maxX, maxY := g.Size()
-	width := max(maxX*2/3, 40)
+	width := max(maxX*2/3, 50)
 	x0 := maxX/2 - width/2
 	titleHeight := 3
 	bodyHeight := 6
 	totalHeight := titleHeight + bodyHeight
 	y0 := maxY/2 - totalHeight/2
 
+	fileListWidth := width * 3 / 10
+	msgX0 := x0 + fileListWidth + 1
+	msgWidth := width - fileListWidth - 1
+
 	g.Cursor = true
+
+	// File list view
+	if v, err := g.SetView("commitFiles", x0, y0, x0+fileListWidth, y0+totalHeight, 0); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Title = "Files to Commit"
+		v.Wrap = false
+		if statusOut != "" {
+			for line := range strings.SplitSeq(statusOut, "\n") {
+				filePath := strings.TrimSpace(line[2:])
+				statusChars := line[:2]
+				var color string
+				switch {
+				case strings.HasPrefix(statusChars, "?"):
+					color = "\x1b[36m"
+				case strings.HasPrefix(statusChars, "M") || strings.HasSuffix(statusChars, "M"):
+					color = "\x1b[33m"
+				case strings.HasPrefix(statusChars, "A"):
+					color = "\x1b[32m"
+				case strings.HasPrefix(statusChars, "D") || strings.HasSuffix(statusChars, "D"):
+					color = "\x1b[31m"
+				case strings.HasPrefix(statusChars, "R"):
+					color = "\x1b[35m"
+				default:
+					color = "\x1b[37m"
+				}
+				fmt.Fprintf(v, "%s%s\x1b[0m %s\n", color, statusChars, filePath)
+			}
+		} else {
+			fmt.Fprint(v, "\x1b[33m(empty)\x1b[0m\n")
+		}
+	}
 
 	subject, body := generateCommitMessage()
 
-	if v, err := g.SetView("commitSubject", x0, y0, x0+width, y0+titleHeight-1, 0); err != nil {
+	if v, err := g.SetView("commitSubject", msgX0, y0, msgX0+msgWidth, y0+titleHeight-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -183,7 +222,7 @@ func promptCommit(g *gocui.Gui, v *gocui.View) error {
 			return err
 		}
 	}
-	if v, err := g.SetView("commitBody", x0, y0+titleHeight, x0+width, y0+totalHeight, 0); err != nil {
+	if v, err := g.SetView("commitBody", msgX0, y0+titleHeight, msgX0+msgWidth, y0+totalHeight, 0); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -228,11 +267,8 @@ func submitCommit(g *gocui.Gui, v *gocui.View) error {
 
 func closeCommitDialog(g *gocui.Gui, v *gocui.View) error {
 	g.Cursor = false
-	for _, name := range []string{"commitSubject", "commitBody"} {
-		err := g.DeleteView(name)
-		if err != nil {
-			return err
-		}
+	for _, name := range []string{"commitFiles", "commitSubject", "commitBody"} {
+		g.DeleteView(name)
 	}
 	_, err := g.SetCurrentView("tasks")
 	return err
