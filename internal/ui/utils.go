@@ -157,6 +157,7 @@ func simpleEditor(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
 		v.Overwrite = !v.Overwrite
 	case gocui.KeyEnter:
 		v.EditNewLine()
+		v.MoveCursor(0, 0)
 	case gocui.KeyArrowDown:
 		v.MoveCursor(0, 1)
 	case gocui.KeyArrowUp:
@@ -229,6 +230,20 @@ func showCurrentTigoDirectory(g *gocui.Gui, v *gocui.View) error {
 // It uses utf8.RuneCountInString to count the number of runes, which correctly handles multi-byte characters.
 func textLen(text string) (length int) {
 	return utf8.RuneCountInString(allANSIRegex.ReplaceAllString(text, ""))
+}
+
+// calcVisualLines returns the number of visual lines the given text would occupy
+// when word-wrapped to contentWidth columns.
+func calcVisualLines(content string, contentWidth int) int {
+	if contentWidth < 1 {
+		contentWidth = 1
+	}
+	lines := 0
+	for line := range strings.SplitSeq(content, "\n") {
+		lineLen := textLen(line)
+		lines += lineLen/contentWidth + 1
+	}
+	return max(lines, 1)
 }
 
 // parseRelativeDateTime takes a string like:

@@ -278,22 +278,38 @@ func layout(g *gocui.Gui) error {
 	return updateViews(g)
 }
 
+func resizeTaskDialog(g *gocui.Gui) error {
+	maxX, maxY := g.Size()
+	widthTitle := maxX / 2
+	widthPriority := maxX / 6
+	heightTitle := 3
+	heightPriority := 3
+	heightDueDate := 3
+	heightTags := 3
+	minDesc := heightPriority + heightDueDate + heightTags - heightTitle
+	maxDesc := min(maxY/2, 24)
+
+	descV, err := g.View("taskDialogDescription")
+	if err != nil {
+		return err
+	}
+	contentWidth := widthTitle - 2
+	needed := calcVisualLines(descV.Buffer(), contentWidth) + 2
+	heightDesc := max(minDesc, min(needed, maxDesc))
+
+	x0 := maxX/2 - widthTitle/2 - widthPriority/2
+	y0 := maxY/2 - heightTitle/2 - heightDesc/2
+	g.SetView("taskDialogTitle", x0, y0, x0+widthTitle-1, y0+heightTitle-1, 0)
+	g.SetView("taskDialogDescription", x0, y0+heightTitle, x0+widthTitle-1, y0+heightTitle+heightDesc-1, 0)
+	g.SetView("taskDialogPriority", x0+widthTitle, y0, x0+widthTitle+widthPriority-1, y0+heightPriority-1, 0)
+	g.SetView("taskDialogDueDate", x0+widthTitle, y0+heightPriority, x0+widthTitle+widthPriority-1, y0+heightPriority+heightDueDate-1, 0)
+	g.SetView("taskDialogTags", x0+widthTitle, y0+heightPriority+heightDueDate, x0+widthTitle+widthPriority-1, y0+heightPriority+heightDueDate+heightTags-1, 0)
+	return nil
+}
+
 func resizeDialogs(g *gocui.Gui, maxX, maxY int) error {
 	if _, err := g.View("taskDialogTitle"); err == nil {
-		widthTitle := maxX / 2
-		widthPriority := maxX / 6
-		heightTitle := 3
-		heightPriority := 3
-		heightDueDate := 3
-		heightTags := 3
-		heightDesc := heightPriority + heightDueDate + heightTags - heightTitle
-		x0 := maxX/2 - widthTitle/2 - widthPriority/2
-		y0 := maxY/2 - heightTitle/2 - heightDesc/2
-		g.SetView("taskDialogTitle", x0, y0, x0+widthTitle-1, y0+heightTitle-1, 0)
-		g.SetView("taskDialogDescription", x0, y0+heightTitle, x0+widthTitle-1, y0+heightTitle+heightDesc-1, 0)
-		g.SetView("taskDialogPriority", x0+widthTitle, y0, x0+widthTitle+widthPriority-1, y0+heightPriority-1, 0)
-		g.SetView("taskDialogDueDate", x0+widthTitle, y0+heightPriority, x0+widthTitle+widthPriority-1, y0+heightPriority+heightDueDate-1, 0)
-		g.SetView("taskDialogTags", x0+widthTitle, y0+heightPriority+heightDueDate, x0+widthTitle+widthPriority-1, y0+heightPriority+heightDueDate+heightTags-1, 0)
+		resizeTaskDialog(g)
 	}
 
 	if _, err := g.View("commitFiles"); err == nil {
