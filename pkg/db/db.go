@@ -77,7 +77,7 @@ func CreateNewTask(root, title string, priority int, tags []string, dueDate stri
 			return "", err
 		}
 
-		logs.Append(logs.LevelInfo, "Created task %s: %s", id, title)
+		logs.Append(logs.LevelInfo, "\x1b[32mCreated\x1b[0m task \x1b[34m%s\x1b[0m: %s", id, title)
 		return id, nil
 	}
 }
@@ -114,7 +114,7 @@ func DeleteTask(root, id string) error {
 
 	err := os.RemoveAll(taskDir)
 	if err == nil {
-		logs.Append(logs.LevelInfo, "Deleted task %s", id)
+		logs.Append(logs.LevelInfo, "\x1b[31mDeleted\x1b[0m task \x1b[34m%s\x1b[0m", id)
 	}
 	return err
 }
@@ -137,7 +137,16 @@ func ToggleStatus(root string, t *task.Task) (string, error) {
 	// Update the raw lines to reflect the new status
 	err := task.Serialize(t, taskMDPath)
 	if err == nil {
-		logs.Append(logs.LevelInfo, "Changed task %s status to %s", t.ID, t.Status)
+		var statusText string
+		switch t.Status {
+		case "OPEN":
+			statusText = "\x1b[33mOPEN\x1b[0m"
+		case "CLOSED":
+			statusText = "\x1b[32mCLOSED\x1b[0m"
+		default:
+			statusText = fmt.Sprintf("\x1b[35m%s\x1b[0m", t.Status)
+		}
+		logs.Append(logs.LevelInfo, "Changed task \x1b[34m%s\x1b[0m status to %s", t.ID, statusText)
 	}
 	return t.Status, err
 }

@@ -70,7 +70,7 @@ func CommitAll(tigoDir, message string) (string, error) {
 
 	out, err = RunGitCommandQuiet(tigoDir, "commit", "--no-verify", "-m", message)
 	if err == nil {
-		logs.Append(logs.LevelGit, "Committed all changes: %q", message)
+		logs.Append(logs.LevelGit, "Committed all changes: \x1b[32m%q\x1b[0m", message)
 	}
 
 	// Restage previously staged files outside tasks directory

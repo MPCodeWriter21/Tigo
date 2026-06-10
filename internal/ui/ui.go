@@ -95,7 +95,7 @@ func Run(root string, conf *config.TigoConfig) error {
 			logs.Append(logs.LevelGit, "Fetching from remote...")
 			out, err := git.RunGitCommand(tigoRoot, "fetch", "--quiet")
 			if err != nil {
-				logs.Append(logs.LevelWarn, "Fetch failed: %v\n%s", err, out)
+				logs.Append(logs.LevelWarn, "Fetch \x1b[31mfailed\x1b[0m: %v\n%s", err, out)
 			} else if out != "" {
 				logs.Append(logs.LevelGit, "Fetch: %s", out)
 			} else {
@@ -653,7 +653,7 @@ func detailsFprintf(v *gocui.View, cx, cy *int, showSelection bool, format strin
 func copyDetail(g *gocui.Gui, v *gocui.View) error {
 	if currentDetail.value != "" {
 		clipboard.WriteAll(currentDetail.value)
-		logs.Append(logs.LevelInfo, "Copied to clipboard: %q", currentDetail.value)
+		logs.Append(logs.LevelInfo, "Copied to clipboard: \x1b[32m%q\x1b[0m", currentDetail.value)
 	}
 	return nil
 }

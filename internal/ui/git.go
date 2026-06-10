@@ -479,9 +479,9 @@ func gitPull(g *gocui.Gui, v *gocui.View) error {
 		out, err := git.RunGitCommand(tigoRoot, "pull", "--no-edit")
 		updateGitState()
 		if err != nil {
-			logs.Append(logs.LevelError, "Pull failed: %v\n%s", err, out)
+			logs.Append(logs.LevelError, "Pull \x1b[31mfailed\x1b[0m: %v\n%s", err, out)
 		} else {
-			logs.Append(logs.LevelGit, "Pull completed successfully:\n%s", out)
+			logs.Append(logs.LevelGit, "Pull \x1b[32mcompleted successfully\x1b[0m:\n%s", out)
 		}
 		g.Update(updateViews)
 	}()
@@ -501,9 +501,9 @@ func gitPush(g *gocui.Gui, v *gocui.View) error {
 		out, err := git.RunGitCommand(tigoRoot, "push")
 		updateGitState()
 		if err != nil {
-			logs.Append(logs.LevelError, "Push failed: %v\n%s", err, out)
+			logs.Append(logs.LevelError, "Push \x1b[31mfailed\x1b[0m: %v\n%s", err, out)
 		} else {
-			logs.Append(logs.LevelGit, "Push completed successfully:\n%s", out)
+			logs.Append(logs.LevelGit, "Push \x1b[32mcompleted successfully\x1b[0m:\n%s", out)
 		}
 		g.Update(updateViews)
 	}()

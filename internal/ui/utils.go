@@ -91,7 +91,7 @@ func copyLine(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}
 	clipboard.WriteAll(line)
-	logs.Append(logs.LevelInfo, "Copied line to clipboard: %q", line)
+	logs.Append(logs.LevelInfo, "Copied line to clipboard: \x1b[32m%q\x1b[0m", line)
 	return nil
 }
 
