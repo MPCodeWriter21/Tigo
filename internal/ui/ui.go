@@ -389,6 +389,7 @@ func updateViews(g *gocui.Gui) error {
 			fmt.Fprintf(logsView, "[\x1b[36m%s\x1b[0m] [%s%s\x1b[0m] \x1b[1;37m%s\x1b[0m\n", timeStr, color, e.Level, e.Message)
 		}
 		_, logsHeight := logsView.Size()
+		cy = max(cy, logsHeight-3)
 		if cy < oy+3 {
 			oy = cy - 3
 		}
