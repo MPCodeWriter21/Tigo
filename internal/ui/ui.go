@@ -271,7 +271,96 @@ func layout(g *gocui.Gui) error {
 		}
 	}
 
+	if err := resizeDialogs(g, maxX, maxY); err != nil {
+		return err
+	}
+
 	return updateViews(g)
+}
+
+func resizeDialogs(g *gocui.Gui, maxX, maxY int) error {
+	if _, err := g.View("taskDialogTitle"); err == nil {
+		widthTitle := maxX / 2
+		widthPriority := maxX / 6
+		heightTitle := 3
+		heightPriority := 3
+		heightDueDate := 3
+		heightTags := 3
+		heightDesc := heightPriority + heightDueDate + heightTags - heightTitle
+		x0 := maxX/2 - widthTitle/2 - widthPriority/2
+		y0 := maxY/2 - heightTitle/2 - heightDesc/2
+		g.SetView("taskDialogTitle", x0, y0, x0+widthTitle-1, y0+heightTitle-1, 0)
+		g.SetView("taskDialogDescription", x0, y0+heightTitle, x0+widthTitle-1, y0+heightTitle+heightDesc-1, 0)
+		g.SetView("taskDialogPriority", x0+widthTitle, y0, x0+widthTitle+widthPriority-1, y0+heightPriority-1, 0)
+		g.SetView("taskDialogDueDate", x0+widthTitle, y0+heightPriority, x0+widthTitle+widthPriority-1, y0+heightPriority+heightDueDate-1, 0)
+		g.SetView("taskDialogTags", x0+widthTitle, y0+heightPriority+heightDueDate, x0+widthTitle+widthPriority-1, y0+heightPriority+heightDueDate+heightTags-1, 0)
+	}
+
+	if _, err := g.View("commitFiles"); err == nil {
+		width := max(maxX*2/3, 50)
+		x0 := maxX/2 - width/2
+		titleHeight := 3
+		bodyHeight := 6
+		totalHeight := titleHeight + bodyHeight
+		y0 := maxY/2 - totalHeight/2
+		fileListWidth := width * 3 / 10
+		msgX0 := x0 + fileListWidth + 1
+		msgWidth := width - fileListWidth - 1
+		g.SetView("commitFiles", x0, y0, x0+fileListWidth, y0+totalHeight, 0)
+		g.SetView("commitSubject", msgX0, y0, msgX0+msgWidth, y0+titleHeight-1, 0)
+		g.SetView("commitBody", msgX0, y0+titleHeight, msgX0+msgWidth, y0+totalHeight, 0)
+	}
+
+	if v, err := g.View("deleteDialog"); err == nil {
+		line, _ := v.Line(0)
+		width := max(maxX/2, textLen(line)+2)
+		height := 2
+		x0 := maxX/2 - width/2
+		y0 := maxY/2 - height/2
+		g.SetView("deleteDialog", x0, y0, x0+width, y0+height, 0)
+	}
+
+	if _, err := g.View("sort"); err == nil {
+		width := maxX / 2
+		height := 5
+		x0 := maxX/2 - width/2
+		y0 := maxY/2 - height/2
+		g.SetView("sort", x0, y0, x0+width, y0+height, 0)
+	}
+
+	if v, err := g.View("messageBox"); err == nil {
+		buf := v.Buffer()
+		width := 0
+		height := 1
+		for line := range strings.SplitSeq(buf, "\n") {
+			width = max(width, textLen(line)+4)
+			height++
+		}
+		x0 := maxX/2 - width/2
+		y0 := maxY/2 - height/2
+		g.SetView("messageBox", x0, y0, x0+width, y0+height, 0)
+	}
+
+	if v, err := g.View("help"); err == nil {
+		buf := v.Buffer()
+		width := 0
+		height := 1
+		for line := range strings.SplitSeq(buf, "\n") {
+			width = max(width, textLen(line)+4)
+			height++
+		}
+		if width > maxX {
+			width = maxX - 1
+		}
+		if height > maxY {
+			height = maxY - 1
+		}
+		x0 := maxX/2 - width/2
+		y0 := maxY/2 - height/2
+		g.SetView("help", x0, y0, x0+width, y0+height, 0)
+	}
+
+	return nil
 }
 
 func updateViews(g *gocui.Gui) error {
