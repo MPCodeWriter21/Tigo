@@ -27,6 +27,26 @@ Features
 Installation
 ------------
 
+### Download from GitHub Releases
+
+Pre-built binaries are available for download from the
+[releases page](https://github.com/MPCodeWriter21/Tigo/releases).
+Supported platforms:
+
+| Platform | amd64 | arm64 | arm |
+|----------|-------|-------|-----|
+| Linux    |   ✓   |   ✓   |  ✓  |
+| Windows  |   ✓   |   ✓   |     |
+| macOS    |   ✓   |   ✓   |     |
+| FreeBSD  |   ✓   |   ✓   |  ✓  |
+| NetBSD   |   ✓   |   ✓   |  ✓  |
+| Android  |       |   ✓   |     |
+
+Download the binary for your platform, rename it to `tigo`, place it somewhere
+in your `PATH`, and use it wherever you want.
+
+### Build from Source
+
 Ensure you have [Go](https://go.dev/) installed.
 
 ```bash
