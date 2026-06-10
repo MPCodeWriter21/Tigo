@@ -309,9 +309,20 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 			return err
 		}
 
+		var selectedID string
+		if len(tasks) > 0 && selectedTask < len(tasks) {
+			selectedID = tasks[selectedTask].ID
+		}
 		// Reload
 		if err := loadTasks(); err != nil {
 			return err
+		}
+		// Keep the same task selected after sorting (if it still exists)
+		for i, t := range tasks {
+			if t.ID == selectedID {
+				selectedTask = i
+				break
+			}
 		}
 
 		return updateViews(g)
