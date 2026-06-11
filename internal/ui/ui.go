@@ -697,12 +697,6 @@ func detailsFprintfLine(v *gocui.View, cx, cy *int, showSelection bool, format s
 		y = 1
 	}
 	y -= 1 // Convert to 0-based index
-	if searchQuery.value != "" {
-		re := regexp.MustCompile("(?i)" + searchQuery.value)
-		line = re.ReplaceAllStringFunc(line, func(match string) string {
-			return fmt.Sprintf("\x1b[43;37m%s\x1b[40m", match)
-		})
-	}
 
 	// Highlight TASK(ID) pattern with blue foreground and underline
 	line = taskRegEx.ReplaceAllStringFunc(line, func(match string) string {
@@ -733,10 +727,9 @@ func detailsFprintfLine(v *gocui.View, cx, cy *int, showSelection bool, format s
 			line += "\x1b[46m \x1b[0m"
 		}
 		currentDetail.value = strings.TrimSpace(allANSIRegex.ReplaceAllString(currentDetail.value, ""))
-		fmt.Fprintf(v, "%s\n", line)
-	} else {
-		fmt.Fprintf(v, "%s\n", line)
 	}
+
+	searchedFprintf(v, "%s\n", line)
 }
 
 func detailsFprintf(v *gocui.View, cx, cy *int, showSelection bool, format string, a ...any) {

@@ -113,15 +113,76 @@ func setCurrentViewCallbackCursor(name string, cursor bool) func(*gocui.Gui, *go
 
 // Works the same as fmt.Fprintf, except if searchQuery is set, it highlights the matching text in the view.
 func searchedFprintf(v *gocui.View, format string, a ...any) {
-	// FIXME: Some queries match the already existing ANSI escape codes, which causes
-	// the highlighting to break. For example, searching for "43m" will match the yellow
+	// Some queries match the already existing ANSI escape codes, which USED TO CAUSE
+	// the highlighting to break. For example, searching for "43m" WOULD match the yellow
 	// background code and break the highlighting.
+	// I AM SO F***KING PROUD OF MYSELF FOR SOLVING THIS!
 	line := fmt.Sprintf(format, a...)
+	// If the search query is not empty, highlight the searched query
 	if searchQuery.value != "" {
 		re := regexp.MustCompile("(?i)" + searchQuery.value)
-		line = re.ReplaceAllStringFunc(line, func(match string) string {
-			return fmt.Sprintf("\x1b[43m%s\x1b[40m", match) // Highlight with yellow background
-		})
+		// Get all the positions where line matches the given search query, and insert the highlight color before the match and the reset color after the match
+		matches := re.FindAllStringIndex(line, -1)
+		// Find all the places ANSI escape codes are
+		// We use these positions to invalidate the search query matches that are inside ANSI escape codes
+		allANSIRegexPlus := regexp.MustCompile(`(?:\x1b\[[0-9;]*m)+`)
+		allAnsiMatches := allANSIRegexPlus.FindAllStringIndex(line, -1)
+		validMatches := make([][]int, 0, len(matches))
+		for _, match := range matches {
+			invalid := false
+			for _, ansiMatch := range allAnsiMatches {
+				// A N S I
+				//  match
+				if match[0] >= ansiMatch[0] && match[1] <= ansiMatch[1] {
+					invalid = true
+					break
+				}
+				//     A N S I
+				//  match
+				if match[0] <= ansiMatch[0] && match[1] > ansiMatch[0] {
+					invalid = true
+					break
+				}
+				// A N S I
+				//      match
+				if match[0] < ansiMatch[1] && match[1] > ansiMatch[1] {
+					invalid = true
+					break
+				}
+			}
+			if !invalid {
+				validMatches = append(validMatches, match)
+			}
+		}
+		offset := 0
+		for _, match := range validMatches {
+			start := match[0] + offset
+			end := match[1] + offset
+
+			resetColor := "\x1b[49m"
+			// Try to find the last ANSI escape code before the match and use its background color as the reset color,
+			// so that only the searched query is highlighted with the highlight color, and the rest of the line remains the same.
+			ansiMatches := allANSIRegex.FindAllStringIndex(line[:start], -1)
+			if len(ansiMatches) > 0 {
+				// Loop through results from the last to the first
+				for i := len(ansiMatches) - 1; i >= 0; i-- {
+					lastAnsi := line[ansiMatches[i][0]:ansiMatches[i][1]]
+					bgRegex := regexp.MustCompile(`(4[0-9])(m|;)`)
+					bgMatch := bgRegex.FindStringSubmatch(lastAnsi)
+					if bgMatch != nil {
+						// Join all the colors from i to the end, and use it as the reset color
+						resetColor = ""
+						for j := i; j < len(ansiMatches); j++ {
+							resetColor += line[ansiMatches[j][0]:ansiMatches[j][1]]
+						}
+						break
+					}
+				}
+			}
+
+			line = line[:start] + "\x1b[43m" + line[start:end] + resetColor + line[end:]
+			offset += len("\x1b[43m") + len(resetColor)
+		}
 	}
 	fmt.Fprint(v, line)
 }
