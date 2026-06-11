@@ -858,5 +858,19 @@ func openSelectedTaskFile(g *gocui.Gui, v *gocui.View) error {
 	if err != nil {
 		return err
 	}
-	return loadTasks()
+	var selectedID string
+	if len(tasks) > 0 && selectedTask < len(tasks) {
+		selectedID = tasks[selectedTask].ID
+	}
+	if err := loadTasks(); err != nil {
+		return err
+	}
+	// Keep the same task selected after sorting (if it still exists)
+	for i, t := range tasks {
+		if t.ID == selectedID {
+			selectedTask = i
+			break
+		}
+	}
+	return updateViews(g)
 }
