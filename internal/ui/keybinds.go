@@ -45,6 +45,7 @@ var bindings []keybinding = []keybinding{
 	{[]string{"tasks"}, []any{'r'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return loadTasks() }, "Reload tasks from disk", true},
 	{[]string{"tasks"}, []any{gocui.KeyEsc}, gocui.ModNone, clearSearchQuery, "Clear the search query", true},
 	{[]string{"tasks", "details", "logs"}, []any{'c'}, gocui.ModNone, promptCommit, "Commit changes", true},
+	{[]string{"tasks", "details", "logs"}, []any{'f'}, gocui.ModNone, gitFetch, "Fetch from remote", true},
 	{[]string{"tasks", "details", "logs"}, []any{'p'}, gocui.ModNone, gitPull, "Pull commits from remote", true},
 	{[]string{"tasks", "details", "logs"}, []any{'P'}, gocui.ModNone, gitPush, "Push commits to remote", true},
 	{[]string{"tasks", "details"}, []any{'/'}, gocui.ModNone, promptSearch, "Search tasks", true},

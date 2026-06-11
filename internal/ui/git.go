@@ -466,7 +466,33 @@ func showLineBlame(g *gocui.Gui, v *gocui.View) error {
 	return promptMessageBox(g, "Line Blame", msg, "", false)
 }
 
-func gitPull(g *gocui.Gui, v *gocui.View) error {
+func gitFetch(g *gocui.Gui, _ *gocui.View) error {
+	if !gitRepo {
+		return nil
+	}
+	go func() {
+		out, err := git.RunGitCommand(tigoRoot, "fetch")
+		updateGitState()
+		text := "Fetch "
+		var level logs.Level
+		if err != nil {
+			text += fmt.Sprintf("\x1b[31mfailed\x1b[0m: %v", err)
+			level = logs.LevelWarn
+		} else {
+			text += "\x1b[32mcompleted\x1b[0m"
+			level = logs.LevelGit
+		}
+		if out != "" {
+			logs.Append(level, text+"\n%s", out)
+		} else {
+			logs.Append(level, text)
+		}
+		g.Update(updateViews)
+	}()
+	return updateViews(g)
+}
+
+func gitPull(g *gocui.Gui, _ *gocui.View) error {
 	if !gitRepo {
 		return nil
 	}
@@ -481,14 +507,14 @@ func gitPull(g *gocui.Gui, v *gocui.View) error {
 		if err != nil {
 			logs.Append(logs.LevelError, "Pull \x1b[31mfailed\x1b[0m: %v\n%s", err, out)
 		} else {
-			logs.Append(logs.LevelGit, "Pull \x1b[32mcompleted successfully\x1b[0m:\n%s", out)
+			logs.Append(logs.LevelGit, "Pull \x1b[32mcompleted\x1b[0m successfully:\n%s", out)
 		}
 		g.Update(updateViews)
 	}()
 	return updateViews(g)
 }
 
-func gitPush(g *gocui.Gui, v *gocui.View) error {
+func gitPush(g *gocui.Gui, _ *gocui.View) error {
 	if !gitRepo {
 		return nil
 	}
@@ -503,7 +529,7 @@ func gitPush(g *gocui.Gui, v *gocui.View) error {
 		if err != nil {
 			logs.Append(logs.LevelError, "Push \x1b[31mfailed\x1b[0m: %v\n%s", err, out)
 		} else {
-			logs.Append(logs.LevelGit, "Push \x1b[32mcompleted successfully\x1b[0m:\n%s", out)
+			logs.Append(logs.LevelGit, "Push \x1b[32mcompleted\x1b[0m successfully:\n%s", out)
 		}
 		g.Update(updateViews)
 	}()

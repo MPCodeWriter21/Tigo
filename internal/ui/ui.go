@@ -11,7 +11,6 @@ import (
 
 	"tigo/internal/config"
 	"tigo/pkg/db"
-	"tigo/pkg/git"
 	"tigo/pkg/logs"
 	"tigo/pkg/task"
 
@@ -91,18 +90,7 @@ func Run(root string, conf *config.TigoConfig) error {
 
 	updateGitState()
 	if gitRepo {
-		go func() {
-			logs.Append(logs.LevelGit, "Fetching from remote...")
-			out, err := git.RunGitCommand(tigoRoot, "fetch", "--quiet")
-			if err != nil {
-				logs.Append(logs.LevelWarn, "Fetch \x1b[31mfailed\x1b[0m: %v\n%s", err, out)
-			} else if out != "" {
-				logs.Append(logs.LevelGit, "Fetch: %s", out)
-			} else {
-				logs.Append(logs.LevelGit, "Fetch completed.")
-			}
-			gitAhead, gitBehind = git.AheadBehind(tigoRoot)
-		}()
+		gitFetch(g, nil)
 	}
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
