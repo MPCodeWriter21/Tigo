@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"tigo/pkg/db"
 	"tigo/pkg/task"
@@ -259,27 +258,26 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 
 		// Validate due date before proceeding
 		if dueDate != "" {
-			parsedRelativeDate, errRelative := parseRelativeDateTime(dueDate)
-			_, errDateOnly := time.Parse("2006-01-02", dueDate)
-			_, errDateTime := time.Parse("2006-01-02 15:04", dueDate)
-			_, errDateTimeFull := time.Parse("2006-01-02 15:04:05", dueDate)
-
-			if errDateOnly != nil && errDateTime != nil && errDateTimeFull != nil && errRelative != nil {
-				err := promptMessageBox(
-					g, "Invalid Due Date",
-					"\x1b[31mUnsupported date format!\x1b[0m Valid examples:\n"+
-						"\t- \x1b[34mAbsolute\x1b[0m: 2024-12-31, 2024-12-31 23:59, 2024-12-31 23:59:59\n"+
-						"\t- \x1b[34mRelative\x1b[0m: today, tonight, tomorrow, next week, 1 month, 3 days, 2 weeks, etc.\n"+
-						"\t- \x1b[34mEmpty\x1b[0m due means no due date",
-					"taskDialogDueDate", true)
-				if err != nil {
-					return err
-				}
-				// Return nil to abort the submission and prevent the dialog from closing
-				return nil
-			}
+			parsedRelativeDate, _, errRelative := parseRelativeDateTime(dueDate)
 			if errRelative == nil {
 				dueDate = parsedRelativeDate
+			} else {
+				parsedDateTime := task.ParseDueDateTime(dueDate)
+
+				if parsedDateTime == nil {
+					err := promptMessageBox(
+						g, "Invalid Due Date",
+						"\x1b[31mUnsupported date format!\x1b[0m Valid examples:\n"+
+							"\t- \x1b[34mAbsolute\x1b[0m: 2024-12-31, 2024-12-31 23:59, 2024-12-31 23:59:59\n"+
+							"\t- \x1b[34mRelative\x1b[0m: today, tonight, tomorrow, next week, 1 month, 3 days, 2 weeks, etc.\n"+
+							"\t- \x1b[34mEmpty\x1b[0m due means no due date",
+						"taskDialogDueDate", true)
+					if err != nil {
+						return err
+					}
+					// Return nil to abort the submission and prevent the dialog from closing
+					return nil
+				}
 			}
 		}
 

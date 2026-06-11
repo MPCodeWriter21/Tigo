@@ -68,7 +68,7 @@ func Run(root string, conf *config.TigoConfig) error {
 	tigoRoot = root
 	cfg = conf
 
-	g, err := gocui.NewGui(gocui.OutputNormal, true)
+	g, err := gocui.NewGui(gocui.OutputTrue, true)
 	if err != nil {
 		return err
 	}
@@ -158,19 +158,13 @@ func loadTasks() error {
 		})
 	case "priority":
 		sort.Slice(tasks, func(i, j int) bool {
-			// Higher priority tasks should come first, so we use > instead of <.
-			return tasks[i].Priority > tasks[j].Priority
+			if tasks[i].Priority != tasks[j].Priority {
+				return tasks[i].Priority > tasks[j].Priority
+			}
+			return dueDateSorter(i, j)
 		})
 	case "due-date":
-		sort.Slice(tasks, func(i, j int) bool {
-			if tasks[i].DueDate == "" {
-				return false
-			}
-			if tasks[j].DueDate == "" {
-				return true
-			}
-			return tasks[i].DueDate < tasks[j].DueDate
-		})
+		sort.Slice(tasks, dueDateSorter)
 	case "title":
 		sort.Slice(tasks, func(i, j int) bool {
 			return tasks[i].Title < tasks[j].Title
@@ -395,7 +389,10 @@ func updateViews(g *gocui.Gui) error {
 			statusColor := "\x1b[35m" // Magenta
 			switch t.Status {
 			case "OPEN":
-				statusColor = "\x1b[33m" // Yellow
+				statusColor = "\x1b[37m" // Yellow
+				if dc := dueColor(t); dc != "" {
+					statusColor = dc
+				}
 			case "CLOSED":
 				statusColor = "\x1b[32m" // Green
 			}
@@ -448,7 +445,8 @@ func updateViews(g *gocui.Gui) error {
 		}
 		detailsFprintf(detailsView, cx, cy, showSelection, "Priority: \x1b[1;34m%d\x1b[0m", t.Priority)
 		if t.DueDate != "" {
-			detailsFprintf(detailsView, cx, cy, showSelection, "Due Date: \x1b[1;33m%s\x1b[0m", t.DueDate)
+			dc := "\x1b[1;33m" + dueColor(t)
+			detailsFprintf(detailsView, cx, cy, showSelection, "Due Date: %s%s\x1b[0m", dc, t.DueDate)
 		}
 		tagsStr := ""
 		for _, tag := range t.Tags {

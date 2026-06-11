@@ -13,6 +13,7 @@ import (
 
 	"tigo/pkg/db"
 	"tigo/pkg/logs"
+	"tigo/pkg/task"
 
 	"github.com/atotto/clipboard"
 	"github.com/awesome-gocui/gocui"
@@ -260,19 +261,25 @@ func calcVisualLines(content string, contentWidth int) int {
 //   - "1 year" -> current time + 1 year
 //   - "next decade" -> current time + 10 years
 //   - "next century" -> current time + 100 years
-func parseRelativeDateTime(input string) (string, error) {
+//
+// Returns the formatted string, the parsed time.Time, and any error.
+// Date-only values use YYYY-MM-DD format; values with time use RFC3339 (timezone-aware).
+func parseRelativeDateTime(input string) (string, *time.Time, error) {
 	input = strings.TrimSpace(strings.ToLower(input))
-	now := time.Now()
+	now := time.Now().Local()
 
 	if input == "today" {
-		return now.Format("2006-01-02"), nil
+		t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		return t.Format("2006-01-02"), &t, nil
 	}
 	if input == "tonight" {
-		// Set the time to 23:59:59 to represent the end of the day
-		return time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location()).Format("2006-01-02 15:04:05"), nil
+		t := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
+		return t.Format(time.RFC3339), &t, nil
 	}
 	if input == "tomorrow" {
-		return now.AddDate(0, 0, 1).Format("2006-01-02"), nil
+		t := now.AddDate(0, 0, 1)
+		t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+		return t.Format("2006-01-02"), &t, nil
 	}
 
 	var seconds, minutes, hours, days, months, years int
@@ -301,20 +308,19 @@ func parseRelativeDateTime(input string) (string, error) {
 		case "next century":
 			years = 100
 		}
+		t := now.AddDate(years, months, days).Add(
+			time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second)
 		if seconds == 0 && minutes == 0 && hours == 0 {
-			return now.AddDate(years, months, days).Format("2006-01-02"), nil
+			return t.Format("2006-01-02"), &t, nil
 		} else {
-			return now.
-				AddDate(years, months, days).
-				Add(time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second).
-				Format("2006-01-02 15:04:05"), nil
+			return t.Format(time.RFC3339), &t, nil
 		}
 	}
 
 	re = regexp.MustCompile(`^([0-9]+)\s*(second|minute|hour|day|week|month|season|year)s?$`)
 	matches := re.FindStringSubmatch(input)
 	if len(matches) != 3 {
-		return "", fmt.Errorf("invalid relative date format")
+		return "", nil, fmt.Errorf("invalid relative date format")
 	}
 	value := matches[1]
 	unit := matches[2]
@@ -340,13 +346,12 @@ func parseRelativeDateTime(input string) (string, error) {
 		years, _ = strconv.Atoi(value)
 	}
 
+	t := now.AddDate(years, months, days).Add(
+		time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second)
 	if seconds == 0 && minutes == 0 && hours == 0 {
-		return now.AddDate(years, months, days).Format("2006-01-02"), nil
+		return t.Format("2006-01-02"), &t, nil
 	} else {
-		return now.
-			AddDate(years, months, days).
-			Add(time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second).
-			Format("2006-01-02 15:04:05"), nil
+		return t.Format(time.RFC3339), &t, nil
 	}
 }
 
@@ -428,4 +433,49 @@ func runCommand(editor, filePath string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run() // Run blocks until the editor exits (useful for terminal editors)
+}
+
+// dueColor returns an ANSI color code for the task based on its due date proximity.
+// Returns empty string if due coloring is disabled or no due date is set.
+func dueColor(t *task.Task) string {
+	if !cfg.DueColorEnabled || t.DueDateTime == nil {
+		return ""
+	}
+	now := time.Now()
+	dt := *t.DueDateTime
+	if dt.Before(now) {
+		return "\x1b[38;5;196m" // Red for overdue
+	}
+	if dt.Sub(now) <= 24*time.Hour {
+		return "\x1b[38;5;208m" // Orange for due today
+	}
+	if dt.Sub(now) <= 48*time.Hour {
+		return "\x1b[38;5;220m" // Yellow for due tomorrow
+	}
+	if dt.Sub(now) <= 7*24*time.Hour {
+		return "\x1b[38;5;38m" // This week
+	}
+	return "\x1b[38;5;12m"
+}
+
+// dueDateSorter ranks tasks by due date, using parsed time when available.
+// Falls back to ID comparison when both tasks lack a due date.
+func dueDateSorter(i, j int) bool {
+	a, b := tasks[i], tasks[j]
+	if a.DueDateTime == nil && b.DueDateTime == nil {
+		if a.DueDate == "" || b.DueDate == "" {
+			return a.ID < b.ID
+		}
+		return a.DueDate < b.DueDate
+	}
+	if a.DueDateTime == nil {
+		return false
+	}
+	if b.DueDateTime == nil {
+		return true
+	}
+	if !a.DueDateTime.Equal(*b.DueDateTime) {
+		return a.DueDateTime.Before(*b.DueDateTime)
+	}
+	return a.DueDate < b.DueDate
 }

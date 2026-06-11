@@ -21,6 +21,9 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.FrameStyle != "round" {
 		t.Errorf("FrameStyle = %q; want %q", cfg.FrameStyle, "round")
 	}
+	if cfg.DueColorEnabled != true {
+		t.Errorf("DueColorEnabled = %t; want true", cfg.DueColorEnabled)
+	}
 }
 
 func TestLoadConfigFromPath(t *testing.T) {
@@ -41,6 +44,7 @@ frame_style: single`,
 				SortBy:          "priority",
 				ShowClosed:      true,
 				FrameStyle:      "single",
+				DueColorEnabled: true,
 			},
 		},
 		{
@@ -51,6 +55,7 @@ frame_style: single`,
 				SortBy:          "due-date",
 				ShowClosed:      false,
 				FrameStyle:      "round",
+				DueColorEnabled: true,
 			},
 		},
 		{
@@ -110,6 +115,9 @@ frame_style: single`,
 			if cfg.FrameStyle != tt.want.FrameStyle {
 				t.Errorf("(%s): FrameStyle = %q; want %q", tt.name, cfg.FrameStyle, tt.want.FrameStyle)
 			}
+			if cfg.DueColorEnabled != tt.want.DueColorEnabled {
+				t.Errorf("(%s): DueColorEnabled = %t; want %t", tt.name, cfg.DueColorEnabled, tt.want.DueColorEnabled)
+			}
 		})
 	}
 }
@@ -165,6 +173,7 @@ show_closed: true`), 0644)
 		SortBy:          "priority", // from local
 		ShowClosed:      true,       // from local
 		FrameStyle:      "double",   // from user (still inherited because local doesn't set it)
+		DueColorEnabled: true,       // default
 	}
 
 	if cfg.DefaultPriority != want.DefaultPriority {

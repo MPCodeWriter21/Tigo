@@ -11,10 +11,11 @@ import (
 )
 
 type TigoConfig struct {
-	DefaultPriority int    `yaml:"default_priority"` // 50
-	SortBy          string `yaml:"sort_by"`          // id, priority, due-date, title
-	ShowClosed      bool   `yaml:"show_closed"`      // true or false
-	FrameStyle      string `yaml:"frame_style"`      // round, double, single
+	DefaultPriority int    `yaml:"default_priority"`  // 50
+	SortBy          string `yaml:"sort_by"`           // id, priority, due-date, title
+	ShowClosed      bool   `yaml:"show_closed"`       // true or false
+	FrameStyle      string `yaml:"frame_style"`       // round, double, single
+	DueColorEnabled bool   `yaml:"due_color_enabled"` // true or false (default true)
 }
 
 // DefaultConfig returns a TigoConfig struct with default values for the Tigo application.
@@ -24,6 +25,7 @@ func DefaultConfig() *TigoConfig {
 		SortBy:          "id",
 		ShowClosed:      false,
 		FrameStyle:      "round",
+		DueColorEnabled: true,
 	}
 }
 
