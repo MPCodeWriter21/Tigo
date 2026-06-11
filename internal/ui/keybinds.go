@@ -76,7 +76,7 @@ var bindings []keybinding = []keybinding{
 	{[]string{"sort"}, []any{gocui.KeyEnter}, gocui.ModNone, submitSort, "Apply the selected sort option", true},
 	{[]string{"sort"}, []any{gocui.KeyEsc}, gocui.ModNone, deleteViewDefault, "Close the sort menu", true},
 
-	{[]string{"search"}, []any{gocui.KeyEsc}, gocui.ModNone, clearSearchQuery, "Close the search prompt", true},
+	{[]string{"search"}, []any{gocui.KeyEsc}, gocui.ModNone, searchClose, "Close the search prompt", true},
 	{[]string{"search"}, []any{gocui.KeyEnter}, gocui.ModNone, submitSearch, "Submit the search query", true},
 	{[]string{"search"}, []any{gocui.KeyArrowUp}, gocui.ModNone, searchCursorUp, "Fill the search view with the previous search query", true},
 
