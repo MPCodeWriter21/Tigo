@@ -77,6 +77,10 @@ func Run(root string, conf *config.TigoConfig) error {
 	defer fmt.Print("\x1b[?25h")   // Make cursor visible
 	defer fmt.Print("\x1b[?1049l") // Disable alternate screen
 
+	logs.RegisterCallback("updateViews", func() {
+		g.Update(updateViews)
+	})
+
 	gocui.DefaultEditor = gocui.EditorFunc(simpleEditor)
 	g.SetManagerFunc(layout)
 

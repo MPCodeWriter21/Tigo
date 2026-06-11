@@ -470,6 +470,7 @@ func gitFetch(g *gocui.Gui, _ *gocui.View) error {
 	if !gitRepo {
 		return nil
 	}
+
 	go func() {
 		out, err := git.RunGitCommand(tigoRoot, "fetch")
 		updateGitState()
@@ -487,9 +488,8 @@ func gitFetch(g *gocui.Gui, _ *gocui.View) error {
 		} else {
 			logs.Append(level, text)
 		}
-		g.Update(updateViews)
 	}()
-	return updateViews(g)
+	return nil
 }
 
 func gitPull(g *gocui.Gui, _ *gocui.View) error {
@@ -509,9 +509,8 @@ func gitPull(g *gocui.Gui, _ *gocui.View) error {
 		} else {
 			logs.Append(logs.LevelGit, "Pull \x1b[32mcompleted\x1b[0m successfully:\n%s", out)
 		}
-		g.Update(updateViews)
 	}()
-	return updateViews(g)
+	return nil
 }
 
 func gitPush(g *gocui.Gui, _ *gocui.View) error {
@@ -531,7 +530,6 @@ func gitPush(g *gocui.Gui, _ *gocui.View) error {
 		} else {
 			logs.Append(logs.LevelGit, "Push \x1b[32mcompleted\x1b[0m successfully:\n%s", out)
 		}
-		g.Update(updateViews)
 	}()
-	return updateViews(g)
+	return nil
 }
