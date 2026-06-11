@@ -400,13 +400,15 @@ func updateViews(g *gocui.Gui) error {
 	if len(tasks) > 0 {
 		tasksView.Highlight = true
 		for _, t := range tasks {
-			text := fmt.Sprintf(" [%s] %s", t.Status, t.Title)
-			pad := strings.Repeat(" ", max(0, tasksWidth-len(text)))
-			if t.Status == "CLOSED" {
-				text = fmt.Sprintf("\x1b[32m%s\x1b[0m", text)
-			} else if t.Status != "OPEN" {
-				text = fmt.Sprintf("\x1b[35m%s\x1b[0m", text)
+			statusColor := "\x1b[35m" // Magenta
+			switch t.Status {
+			case "OPEN":
+				statusColor = "\x1b[33m" // Yellow
+			case "CLOSED":
+				statusColor = "\x1b[32m" // Green
 			}
+			text := fmt.Sprintf(" \x1b[36m[%s%s\x1b[36m]\x1b[0m %s", statusColor, t.Status, t.Title)
+			pad := strings.Repeat(" ", max(0, tasksWidth-textLen(text)))
 			searchedFprintf(tasksView, "%s%s\n", text, pad)
 		}
 		if selectedTask < oy+3 {
