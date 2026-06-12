@@ -98,6 +98,8 @@ use `$HOME/.local/share/tigo`.
 - `o`: Open the tasks containing directory in the file explorer
 - `O`: Open the selected task's TASK.md in the default editor
 - `r`: Refresh the task list (useful if tasks are modified outside Tigo)
+- `<alt+c>`: Open local Tigo config in the default editor
+- `<alt+r>`: Reload the Tigo configuration from disk
 - `` ` ``: Show the current Tigo directory
 - `<space>`: Toggle task status (OPEN/CLOSED) / Follow hyperlink
 - `<tab>`: Switch between different views (e.g., task list, task details)
@@ -135,10 +137,11 @@ Tigo looks for config in this order:
 3. `$HOME/.local/share/tigo/config.yaml`
 
 ```yaml
-sort_by: id           # Sort tasks by id, priority, due-date, or title
-default_priority: 50  # The default priority for new tasks
-frame_style: round    # The style of the frames (round, double, single)
-show_completed: false # Whether to show completed tasks in the list by default
+sort_by: id              # Sort tasks by id, priority, due-date, or title
+default_priority: 50     # The default priority for new tasks
+frame_style: round       # The style of the frames (round, double, single)
+show_completed: false    # Whether to show completed tasks in the list by default
+due_color_enabled: false # Whether to color the due date based on how close it is
 ```
 
 Git Integration

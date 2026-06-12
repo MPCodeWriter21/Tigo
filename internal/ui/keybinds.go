@@ -53,6 +53,8 @@ var bindings []keybinding = []keybinding{
 	{[]string{"tasks", "details"}, []any{'O'}, gocui.ModNone, openSelectedTaskFile, "Open the selected task in the default editor", true},
 	{[]string{"tasks", "details"}, []any{'`'}, gocui.ModNone, showCurrentTigoDirectory, "Show the current Tigo directory", true},
 	{[]string{"tasks", "details"}, []any{'L'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { _, err := g.SetCurrentView("logs"); return err }, "Focus the logs view", true},
+	{[]string{"tasks", "details", "logs"}, []any{'c'}, gocui.ModAlt, openConfigFile, "Open local config", true},
+	{[]string{"tasks", "details", "logs"}, []any{'r'}, gocui.ModAlt, reloadConfig, "Reload tigo config", true},
 	{[]string{"tasks"}, []any{gocui.KeyTab, gocui.KeyEnter, 'l'}, gocui.ModNone, showDetails, "Focus the details view", true},
 	{[]string{"details"}, []any{gocui.KeyTab, gocui.KeyEsc}, gocui.ModNone, setCurrentViewCallback("tasks"), "Focus the tasks view", true},
 

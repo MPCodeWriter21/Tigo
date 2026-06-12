@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"tigo/internal/config"
 	"tigo/pkg/db"
 	"tigo/pkg/logs"
 	"tigo/pkg/task"
@@ -288,6 +290,43 @@ func showCurrentTigoDirectory(g *gocui.Gui, v *gocui.View) error {
 	return promptMessageBox(g, "Current Tigo Directory", tigoRoot, "", false)
 }
 
+// reloadConfig reloads the configuration from disk and updates the views. It keeps the same task selected if it still exists after reloading.
+func reloadConfig(g *gocui.Gui, _ *gocui.View) error {
+	var err error
+	cfg, err = config.LoadConfig(tigoRoot)
+	if err != nil {
+		return fmt.Errorf("reload config: %w", err)
+	}
+	// Keep the same task selected modifying the config (if it still exists)
+	var selectedID string
+	if len(tasks) > 0 && selectedTask < len(tasks) {
+		selectedID = tasks[selectedTask].ID
+	}
+	if err := loadTasks(); err != nil {
+		return err
+	}
+	for i, t := range tasks {
+		if t.ID == selectedID {
+			selectedTask = i
+			break
+		}
+	}
+	return updateViews(g)
+}
+
+// openConfigFile opens the local config file in the user's default text editor.
+func openConfigFile(g *gocui.Gui, _ *gocui.View) error {
+	gocui.Suspend()
+	defer gocui.Resume()
+
+	configFilePath := filepath.Join(tigoRoot, "config.yaml")
+	err := openInEditor(configFilePath)
+	if err != nil {
+		return err
+	}
+	return reloadConfig(g, nil)
+}
+
 // textLen returns the length of the text without counting ANSI escape codes.
 // It uses utf8.RuneCountInString to count the number of runes, which correctly handles multi-byte characters.
 func textLen(text string) (length int) {
@@ -441,6 +480,10 @@ func openFile(path string) error {
 }
 
 // openInEditor opens the given file in the user's default text editor.
+// IMPORTANT: Make sure to suspend the UI before calling this function, and resume it after the editor is closed, to prevent UI glitches:
+//
+//	gocui.Suspend()
+//	defer gocui.Resume()
 func openInEditor(filePath string) error {
 	// 1. Check environment variables
 	if editor := os.Getenv("VISUAL"); editor != "" {

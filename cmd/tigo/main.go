@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"tigo/internal/config"
 	"tigo/internal/ui"
@@ -60,31 +59,20 @@ func main() {
 	}
 
 	if *userConfigPathFlag {
-		userConfigDir, err := os.UserConfigDir()
+		userConfigPath, err := config.UserConfigPath()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error getting user config directory: %v\n", err)
 			os.Exit(1)
 		}
-		// Load config from user config directory if it exists
-		userConfigPath := filepath.Join(userConfigDir, "tigo", "config.yaml")
 		fmt.Println(userConfigPath)
 		os.Exit(0)
 	}
 
 	rootPath := flag.Arg(0)
-	cfg, err := config.LoadConfig()
 	if rootPath == "" {
 		rootPath = db.ResolveRoot()
-	} else {
-		cfgPath := filepath.Join(rootPath, "config.yaml")
-		if _, err := os.Stat(cfgPath); err == nil {
-			err = config.LoadConfigFromPath(cfgPath, cfg)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error loading config from %s: %v\n", cfgPath, err)
-				os.Exit(1)
-			}
-		}
 	}
+	cfg, err := config.LoadConfig(rootPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 		os.Exit(1)

@@ -29,12 +29,23 @@ func DefaultConfig() *TigoConfig {
 	}
 }
 
+// DefaultTigoDir returns the default directory for Tigo data (e.g. ~/.local/share/tigo).
 func DefaultTigoDir() (string, error) {
 	userHomeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", errors.New("get user home dir: " + err.Error())
 	}
 	return filepath.Join(userHomeDir, ".local", "share", "tigo"), nil
+}
+
+// UserConfigPath returns the path to the user config file
+// Usually `~/.config/tigo/config.yaml` on Unix and `%APPDATA%\tigo\config.yaml` on Windows
+func UserConfigPath() (string, error) {
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(userConfigDir, "tigo", "config.yaml"), nil
 }
 
 // LoadConfigFromPath loads the Tigo configuration from a YAML file to the provided TigoConfig struct.
@@ -65,15 +76,19 @@ func LoadConfigFromPath(configPath string, cfg *TigoConfig) error {
 }
 
 // LoadConfig loads the Tigo configuration from the default config path and returns a TigoConfig struct.
-func LoadConfig() (*TigoConfig, error) {
+// Order of precedence for config loading:
+// 1. User config directory
+// 2. Local tigo directory in the current root directory (e.g. ./.tigo/config.yaml - overrides user config if it exists)
+// 3. Default tigo directory (e.g. ~/.local/share/tigo/config.yaml - only loaded if no local config's found)
+// If no config file is found, it returns a TigoConfig struct with default values.
+func LoadConfig(tigoRoot string) (*TigoConfig, error) {
 	cfg := DefaultConfig()
 
-	userConfigDir, err := os.UserConfigDir()
-	if err != nil {
-		return nil, errors.New("get user config dir: " + err.Error())
-	}
 	// Load config from user config directory if it exists
-	userConfigPath := filepath.Join(userConfigDir, "tigo", "config.yaml")
+	userConfigPath, err := UserConfigPath()
+	if err != nil {
+		return nil, fmt.Errorf("get user config path: %w", err)
+	}
 	if _, err := os.Stat(userConfigPath); err == nil {
 		err = LoadConfigFromPath(userConfigPath, cfg)
 		if err != nil {
@@ -81,12 +96,8 @@ func LoadConfig() (*TigoConfig, error) {
 		}
 	}
 
-	// Look for tigo directory in the current working directory and load config from there if it exists
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, errors.New("get current working directory: " + err.Error())
-	}
-	localConfigPath := filepath.Join(cwd, ".tigo", "config.yaml")
+	// Look for tigo directory in the current root directory and load config from there if it exists
+	localConfigPath := filepath.Join(tigoRoot, "config.yaml")
 	if _, err := os.Stat(localConfigPath); err == nil {
 		err = LoadConfigFromPath(localConfigPath, cfg)
 		if err != nil {

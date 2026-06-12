@@ -161,7 +161,7 @@ show_closed: true`), 0644)
 	defer os.Chdir(origCwd)
 	os.Chdir(cwd)
 
-	cfg, err := LoadConfig()
+	cfg, err := LoadConfig(filepath.Join(cwd, ".tigo"))
 	if err != nil {
 		t.Fatalf("LoadConfig() unexpected error: %v", err)
 	}
@@ -200,7 +200,7 @@ show_closed: true`), 0644)
 		t.Setenv("USERPROFILE", emptyHome)
 		emptyCwd := t.TempDir()
 		os.Chdir(emptyCwd)
-		cfg, err := LoadConfig()
+		cfg, err := LoadConfig(filepath.Join(emptyCwd, ".tigo"))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
