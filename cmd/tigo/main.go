@@ -53,8 +53,8 @@ func main() {
 		fmt.Println("sort_by: id              # Sort tasks by id, priority, due-date, or title")
 		fmt.Println("default_priority: 50     # The default priority for new tasks")
 		fmt.Println("frame_style: round       # The style of the frames (round, double, single)")
-		fmt.Println("show_completed: false    # Whether to show completed tasks in the list by default")
-		fmt.Println("due_color_enabled: false # Whether to color the due date based on how close it is")
+		fmt.Println("show_closed: false       # Whether to show closed tasks in the list by default")
+		fmt.Println("due_color_enabled: true  # Whether to color the due date based on how close it is")
 		os.Exit(0)
 	}
 

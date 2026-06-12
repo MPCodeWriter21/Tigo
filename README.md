@@ -140,8 +140,8 @@ Tigo looks for config in this order:
 sort_by: id              # Sort tasks by id, priority, due-date, or title
 default_priority: 50     # The default priority for new tasks
 frame_style: round       # The style of the frames (round, double, single)
-show_completed: false    # Whether to show completed tasks in the list by default
-due_color_enabled: false # Whether to color the due date based on how close it is
+show_closed: false       # Whether to show closed tasks in the list by default
+due_color_enabled: true  # Whether to color the due date based on how close it is
 ```
 
 Git Integration
