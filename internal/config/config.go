@@ -101,7 +101,7 @@ func LoadConfig(tigoRoot string) (*TigoConfig, error) {
 	if _, err := os.Stat(localConfigPath); err == nil {
 		err = LoadConfigFromPath(localConfigPath, cfg)
 		if err != nil {
-			return nil, fmt.Errorf("load local config from %s: %w", localConfigPath, err)
+			return nil, fmt.Errorf("load local config from `%s`: %w", localConfigPath, err)
 		}
 		return cfg, nil
 	}

@@ -290,13 +290,21 @@ func showCurrentTigoDirectory(g *gocui.Gui, v *gocui.View) error {
 	return promptMessageBox(g, "Current Tigo Directory", tigoRoot, "", false)
 }
 
+// StartupConfigError sets the startup error to be displayed when the UI starts.
+func StartupConfigError(err error) {
+	startupErr = err
+}
+
 // reloadConfig reloads the configuration from disk and updates the views. It keeps the same task selected if it still exists after reloading.
 func reloadConfig(g *gocui.Gui, _ *gocui.View) error {
-	var err error
-	cfg, err = config.LoadConfig(tigoRoot)
+	var newCfg *config.TigoConfig
+	newCfg, err := config.LoadConfig(tigoRoot)
 	if err != nil {
-		return fmt.Errorf("reload config: %w", err)
+		return promptMessageBox(g, "Invalid Config",
+			fmt.Sprintf("\x1b[31mFailed to reload config:\x1b[0m\n%s\nCurrent config is unchanged.", err.Error()),
+			"tasks", false)
 	}
+	cfg = newCfg
 	// Keep the same task selected modifying the config (if it still exists)
 	var selectedID string
 	if len(tasks) > 0 && selectedTask < len(tasks) {

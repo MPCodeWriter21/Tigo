@@ -74,8 +74,9 @@ func main() {
 	}
 	cfg, err := config.LoadConfig(rootPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "Warning: config error, using defaults: %v\n", err)
+		cfg = config.DefaultConfig()
+		ui.StartupConfigError(err)
 	}
 
 	err = db.Init(rootPath)

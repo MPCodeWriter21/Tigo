@@ -25,6 +25,7 @@ var (
 	cfg           *config.TigoConfig
 	searchQuery   searchQueryType
 	currentDetail detail
+	startupErr    error // Non-nil if config loading failed on launch
 	detailsRegEx  = regexp.MustCompile(`(?:\x1b\[(1;[0-9]+)m)|(?:\x1b\[(3[2-4];4)m)`)
 	allANSIRegex  = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 	taskRegEx     = regexp.MustCompile(`(?i)TASK\([0-9]{8}-[0-9]{6}\)`)
@@ -95,6 +96,18 @@ func Run(root string, conf *config.TigoConfig) error {
 	updateGitState()
 	if gitRepo {
 		gitFetch(g, nil)
+	}
+
+	// Show config error as a message box on startup
+	if startupErr != nil {
+		err := startupErr
+		startupErr = nil
+		g.Update(func(g *gocui.Gui) error {
+			return promptMessageBox(g, "Invalid Config",
+				fmt.Sprintf("\x1b[31mConfig file has errors:\x1b[0m\n%s\n\nPress Enter to continue.",
+					err.Error()),
+				"tasks", false)
+		})
 	}
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
