@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -590,4 +591,24 @@ func dueDateSorter(i, j int) bool {
 		return a.DueDateTime.Before(*b.DueDateTime)
 	}
 	return a.DueDate < b.DueDate
+}
+
+// sortedKeysByValue returns a slice of the map's keys sorted by their values in descending order
+// If two keys have the same value, they are sorted in alphabetical order.
+func sortedKeysByValue(m map[string]int) []string {
+	// Extract keys into a slice
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	// Sort the keys based on map values
+	sort.Slice(keys, func(i, j int) bool {
+		if m[keys[i]] == m[keys[j]] {
+			return keys[i] < keys[j]
+		}
+		return m[keys[i]] > m[keys[j]]
+	})
+
+	return keys
 }

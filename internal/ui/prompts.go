@@ -80,6 +80,75 @@ func promptEditTask(g *gocui.Gui, v *gocui.View) error {
 		t.Title, t.Priority, t.Tags, t.DueDate, t.Description)
 }
 
+// An extension of simpleEditor with auto-completion support for the description view in the task dialog
+func _taskDescriptionEditor(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
+	if ac.active && ac.viewName == v.Name() {
+		switch key {
+		case gocui.KeyArrowUp, gocui.KeyCtrlP:
+			acPrev()
+			return
+		case gocui.KeyArrowDown, gocui.KeyCtrlN:
+			acNext()
+			return
+		case gocui.KeyEnter, gocui.KeyTab:
+			acAccept(v)
+			return
+		case gocui.KeyEsc:
+			acHide()
+			return
+		}
+	}
+
+	if ch != 0 && mod == 0 {
+		v.EditWrite(ch)
+		checkTrigger(v)
+		return
+	}
+	_, cy := v.Cursor()
+
+	switch key {
+	case gocui.KeySpace:
+		v.EditWrite(' ')
+	case gocui.KeyBackspace, gocui.KeyBackspace2:
+		v.EditDelete(true)
+	case gocui.KeyDelete:
+		v.EditDelete(false)
+	case gocui.KeyInsert:
+		v.Overwrite = !v.Overwrite
+	case gocui.KeyEnter:
+		if ac.active {
+			acAccept(v)
+			return
+		}
+		v.EditNewLine()
+		v.MoveCursor(0, 0)
+		resizeTaskDialog(ac.g)
+		return
+	case gocui.KeyArrowDown:
+		v.MoveCursor(0, 1)
+	case gocui.KeyArrowUp:
+		v.MoveCursor(0, -1)
+	case gocui.KeyArrowLeft:
+		v.MoveCursor(-1, 0)
+	case gocui.KeyArrowRight:
+		v.MoveCursor(1, 0)
+	case gocui.KeyHome:
+		v.SetCursor(0, cy)
+	case gocui.KeyEnd:
+		line, _ := v.Line(cy)
+		v.SetCursor(len(line), cy)
+	case gocui.KeyTab:
+		setCurrentViewCallback("taskDialogPriority")(ac.g, v)
+		return
+	case gocui.KeyEsc:
+		closePromptTaskDialog(ac.g, v)
+		return
+	default:
+		v.EditWrite(ch)
+	}
+	checkTrigger(v)
+}
+
 func _promptTask(
 	g *gocui.Gui,
 	successCallback func(title string, priority int, tags []string, dueDate string, description string) error,
@@ -124,20 +193,14 @@ func _promptTask(
 		}
 		v.Title = "Description"
 		v.Editable = true
+		v.Editor = gocui.EditorFunc(_taskDescriptionEditor)
 		v.Wrap = true
 		fmt.Fprint(v, description)
 		v.SetCursor(len(description), strings.Count(description, "\n"))
 
-		g.SetKeybinding("taskDialogDescription", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
-		g.SetKeybinding("taskDialogDescription", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("taskDialogPriority"))
 		g.SetKeybinding("taskDialogDescription", gocui.KeyCtrlK, gocui.ModNone, setCurrentViewCallback("taskDialogTitle"))
 		g.SetKeybinding("taskDialogDescription", gocui.KeyCtrlL, gocui.ModNone, setCurrentViewCallback("taskDialogDueDate"))
 		g.SetKeybinding("taskDialogDescription", gocui.KeyEnter, gocui.ModShift, _submitPromptTaskCallback(successCallback))
-		g.SetKeybinding("taskDialogDescription", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-			v.EditNewLine()
-			v.MoveCursor(0, 0)
-			return resizeTaskDialog(g)
-		})
 	}
 	if v, err := g.SetView("taskDialogPriority", x0+widthTitle, y0, x0+widthTitle+widthPriority-1, y0+heightPriority-1, 0); err != nil {
 		if err != gocui.ErrUnknownView {

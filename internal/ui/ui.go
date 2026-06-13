@@ -29,7 +29,7 @@ var (
 	detailsRegEx  = regexp.MustCompile(`(?:\x1b\[(1;[0-9]+)m)|(?:\x1b\[(3[2-4];4)m)`)
 	allANSIRegex  = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 	taskRegEx     = regexp.MustCompile(`(?i)TASK\([0-9]{8}-[0-9]{6}\)`)
-	filePathRegEx = regexp.MustCompile(`(?:(?P<relative>\.\.?\/)(?P<path>[\w\-\/\.]+))`)
+	filePathRegEx = regexp.MustCompile(`(?:(?P<relative>\.\.?\/)(?P<path>[\w\-\/\. ]+))`)
 	URLRegEx      = regexp.MustCompile(`(?:(?P<protocol>[a-z\-]+):\/\/(?P<hostname>[-a-zA-Z0-9]+(?:\.[-a-zA-Z0-9]+)+)(?P<port>:[0-9]+)?(?P<path>(?:\/[-a-zA-Z0-9()@:%_\+.~#?&=!]*)*))`)
 )
 
@@ -73,6 +73,8 @@ func Run(root string, conf *config.TigoConfig) error {
 	if err != nil {
 		return err
 	}
+	ac.g = g
+
 	defer func() { g.Cursor = true }()
 	defer g.Close()
 	defer fmt.Print("\x1b[?25h")   // Make cursor visible
@@ -240,6 +242,7 @@ func layout(g *gocui.Gui) error {
 
 	if hasLogs {
 		if v, err := g.SetView("logs", maxX/3, detailHeight, maxX-1, maxY-2, 0); err != nil {
+			g.SetViewOnBottom("logs")
 			if err != gocui.ErrUnknownView {
 				return err
 			}
@@ -356,6 +359,10 @@ func resizeDialogs(g *gocui.Gui, maxX, maxY int) error {
 		g.SetView("messageBox", x0, y0, x0+width, y0+height, 0)
 	}
 
+	if _, err := g.View("autoComplete"); err == nil {
+		acShow()
+	}
+
 	if v, err := g.View("help"); err == nil {
 		buf := v.Buffer()
 		width := 0
@@ -413,8 +420,8 @@ func updateViews(g *gocui.Gui) error {
 			pad := strings.Repeat(" ", max(0, tasksWidth-textLen(text)))
 			searchedFprintf(tasksView, "%s%s\n", text, pad)
 		}
-		if selectedTask < oy+3 {
-			oy = selectedTask - 3
+		if selectedTask < oy+2 {
+			oy = selectedTask - 2
 		}
 		if selectedTask > oy+tasksHeight-3 {
 			oy = selectedTask - tasksHeight + 3
@@ -480,7 +487,7 @@ func updateViews(g *gocui.Gui) error {
 		if g.CurrentView() != logsView {
 			cy = logsView.LinesHeight() - 2
 		}
-		ox, oy = tasksView.Origin()
+		oy = 0
 		logsView.Clear()
 		entries := logs.Entries()
 		for _, e := range entries {
@@ -509,7 +516,7 @@ func updateViews(g *gocui.Gui) error {
 		if oy < 0 {
 			oy = 0
 		}
-		logsView.SetOrigin(ox, oy)
+		logsView.SetOrigin(0, oy)
 		logsView.SetCursor(cx, min(cy, logsView.LinesHeight()-2))
 	}
 
@@ -550,7 +557,7 @@ func updateViews(g *gocui.Gui) error {
 			g.DeleteView("help")
 		}
 		_, cy := helpView.Cursor()
-		_, oy = tasksView.Origin()
+		oy = 0
 		_, helpHeight := helpView.Size()
 		cy = max(cy, helpHeight-3)
 		if cy < oy+3 {
