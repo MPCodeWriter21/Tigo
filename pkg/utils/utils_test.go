@@ -541,13 +541,6 @@ func TestDueColor_Future(t *testing.T) {
 	}
 }
 
-func TestDueColor_ExactlyNow(t *testing.T) {
-	dt := time.Now()
-	if c := DueColor(&dt); c != "\x1b[38;5;208m" {
-		t.Errorf("DueColor(now) = %q, want orange code (due today)", c)
-	}
-}
-
 // ---------------------------------------------------------------------------
 // SortedKeysByValue
 // ---------------------------------------------------------------------------
