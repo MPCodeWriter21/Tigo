@@ -9,6 +9,7 @@ import (
 
 	"tigo/pkg/db"
 	"tigo/pkg/task"
+	"tigo/pkg/utils"
 
 	"github.com/awesome-gocui/gocui"
 )
@@ -321,11 +322,11 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 
 		// Validate due date before proceeding
 		if dueDate != "" {
-			parsedRelativeDate, _, errRelative := parseRelativeDateTime(dueDate)
+			parsedRelativeDate, _, errRelative := utils.ParseRelativeDateTime(dueDate)
 			if errRelative == nil {
 				dueDate = parsedRelativeDate
 			} else {
-				parsedDateTime := task.ParseDueDateTime(dueDate)
+				parsedDateTime := utils.ParseDueDateTime(dueDate)
 
 				if parsedDateTime == nil {
 					err := promptMessageBox(
@@ -595,7 +596,7 @@ func promptMessageBox(g *gocui.Gui, title, message, focusView string, focusCurso
 	width := 0
 	height := 1
 	for line := range strings.SplitSeq(message, "\n") {
-		width = max(width, textLen(line)+4)
+		width = max(width, utils.TextLen(line)+4)
 		height++
 	}
 	x0 := maxX/2 - width/2

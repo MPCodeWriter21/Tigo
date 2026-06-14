@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"tigo/pkg/utils"
 
 	"github.com/awesome-gocui/gocui"
 )
@@ -99,7 +100,7 @@ func showTaskAutoComplete(viewName string, startCol int, prefix string) {
 	ac.typ = acTask
 	ac.trigger = "Task("
 	ac.prefix = prefix
-	ac.items = sortedKeysByValue(itemMap)
+	ac.items = utils.SortedKeysByValue(itemMap)
 	ac.selected = 0
 	ac.searchDir = ""
 	ac.startCol = startCol
@@ -174,7 +175,7 @@ func showFilePathComplete(viewName string, startCol int, trigger, prefix string)
 	ac.typ = acFilePath
 	ac.trigger = trigger
 	ac.prefix = prefix
-	ac.items = sortedKeysByValue(itemMap)
+	ac.items = utils.SortedKeysByValue(itemMap)
 	ac.selected = 0
 	ac.startCol = startCol
 	ac.viewName = viewName

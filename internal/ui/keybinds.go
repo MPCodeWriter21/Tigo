@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"tigo/pkg/logs"
+	"tigo/pkg/utils"
 
 	"github.com/awesome-gocui/gocui"
 )
@@ -143,7 +144,7 @@ func promptHelpKeybindings(g *gocui.Gui, v *gocui.View) error {
 			}
 			text := strings.Join(keyStrs, ", ")
 			keyDescriptions = append(keyDescriptions, keysDescription{
-				textLen: textLen(text), keysText: text, description: binding.description,
+				textLen: utils.TextLen(text), keysText: text, description: binding.description,
 			})
 		}
 	}
@@ -165,7 +166,7 @@ func promptHelpKeybindings(g *gocui.Gui, v *gocui.View) error {
 	width := 0
 	height := 1
 	for line := range strings.SplitSeq(message.String(), "\n") {
-		width = max(width, textLen(line)+4)
+		width = max(width, utils.TextLen(line)+4)
 		height++
 	}
 
@@ -175,16 +176,16 @@ func promptHelpKeybindings(g *gocui.Gui, v *gocui.View) error {
 		message.Reset()
 		for _, kd := range keyDescriptions {
 			// kd.keysText
-			paddingLength := (width - textLen(kd.keysText) - 2) / 2
+			paddingLength := (width - utils.TextLen(kd.keysText) - 2) / 2
 			padding := strings.Repeat(" ", paddingLength)
 			fmt.Fprintf(&message, "%s%s%s\n", padding, kd.keysText, padding)
 			// kd.description
-			paddingLength = (width - textLen(kd.description) - 2) / 2
+			paddingLength = (width - utils.TextLen(kd.description) - 2) / 2
 			padding = strings.Repeat(" ", paddingLength)
 			// I am not sure if I should underline the description to somewhat separate them from the next keybind
 			// White underlined: \x1b[37m;4m
 			desc := fmt.Sprintf("\x1b[37m%s%s", padding, kd.description)
-			fmt.Fprintf(&message, "%s%-*s\x1b[0m\n", desc, width-textLen(desc)-1, " ")
+			fmt.Fprintf(&message, "%s%-*s\x1b[0m\n", desc, width-utils.TextLen(desc)-1, " ")
 		}
 	}
 	if height > maxY {

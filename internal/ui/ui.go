@@ -13,6 +13,7 @@ import (
 	"tigo/pkg/db"
 	"tigo/pkg/logs"
 	"tigo/pkg/task"
+	"tigo/pkg/utils"
 
 	"github.com/atotto/clipboard"
 	"github.com/awesome-gocui/gocui"
@@ -26,11 +27,6 @@ var (
 	searchQuery   searchQueryType
 	currentDetail detail
 	startupErr    error // Non-nil if config loading failed on launch
-	detailsRegEx  = regexp.MustCompile(`(?:\x1b\[(1;[0-9]+)m)|(?:\x1b\[(3[2-4];4)m)`)
-	allANSIRegex  = regexp.MustCompile(`\x1b\[[0-9;]*m`)
-	taskRegEx     = regexp.MustCompile(`(?i)TASK\([0-9]{8}-[0-9]{6}\)`)
-	filePathRegEx = regexp.MustCompile(`(?:(?P<relative>\.\.?\/)(?P<path>[\w\-\/\. ]+))`)
-	URLRegEx      = regexp.MustCompile(`(?:(?P<protocol>[a-z\-]+):\/\/(?P<hostname>[-a-zA-Z0-9]+(?:\.[-a-zA-Z0-9]+)+)(?P<port>:[0-9]+)?(?P<path>(?:\/[-a-zA-Z0-9()@:%_\+.~#?&=!]*)*))`)
 )
 
 type detailType int
@@ -126,11 +122,12 @@ func loadTasks() error {
 	}
 
 	tasks = make([]*task.Task, 0, len(taskIDs))
+	// Parse each task and filter based on search query and config settings
 	for _, id := range taskIDs {
 		t, err := task.Parse(id, filepath.Join(tigoRoot, id, "TASK.md"))
 		if err == nil {
 			// If the search query is a task id, show the task no matter what
-			if regexp.MustCompile("[0-9]{8}-[0-9]{6}").MatchString(searchQuery.value) {
+			if utils.IDRegEx.MatchString(searchQuery.value) {
 				idMatched, err := regexp.MatchString("(?i)"+searchQuery.value, t.ID)
 				if err == nil && idMatched {
 					tasks = append(tasks, t)
@@ -166,6 +163,30 @@ func loadTasks() error {
 			tasks = append(tasks, t)
 		}
 	}
+
+	// Ranks tasks by due date, using parsed time when available.
+	// Falls back to ID comparison when both tasks lack a due date.
+	dueDateSorter := func(i, j int) bool {
+		a, b := tasks[i], tasks[j]
+		if a.DueDateTime == nil && b.DueDateTime == nil {
+			if a.DueDate == "" || b.DueDate == "" {
+				return a.ID < b.ID
+			}
+			return a.DueDate < b.DueDate
+		}
+		if a.DueDateTime == nil {
+			return false
+		}
+		if b.DueDateTime == nil {
+			return true
+		}
+		if !a.DueDateTime.Equal(*b.DueDateTime) {
+			return a.DueDateTime.Before(*b.DueDateTime)
+		}
+		return a.DueDate < b.DueDate
+	}
+
+	// Sort tasks based on the configured sort option
 	switch cfg.SortBy {
 	case "id":
 		sort.Slice(tasks, func(i, j int) bool {
@@ -176,6 +197,7 @@ func loadTasks() error {
 			if tasks[i].Priority != tasks[j].Priority {
 				return tasks[i].Priority > tasks[j].Priority
 			}
+			// Fall back to due date sorting if priorities are equal
 			return dueDateSorter(i, j)
 		})
 	case "due-date":
@@ -187,6 +209,8 @@ func loadTasks() error {
 	default:
 		return fmt.Errorf("invalid sort option: %s", cfg.SortBy)
 	}
+
+	// Ensure selectedTask is within bounds after reloading tasks
 	selectedTask = max(min(selectedTask, len(tasks)-1), 0)
 	return nil
 }
@@ -296,7 +320,7 @@ func resizeTaskDialog(g *gocui.Gui) error {
 		return err
 	}
 	contentWidth := widthTitle - 2
-	needed := calcVisualLines(descV.Buffer(), contentWidth) + 2
+	needed := utils.CalcVisualLines(descV.Buffer(), contentWidth) + 2
 	heightDesc := max(minDesc, min(needed, maxDesc))
 
 	x0 := maxX/2 - widthTitle/2 - widthPriority/2
@@ -331,7 +355,7 @@ func resizeDialogs(g *gocui.Gui, maxX, maxY int) error {
 
 	if v, err := g.View("deleteDialog"); err == nil {
 		line, _ := v.Line(0)
-		width := max(maxX/2, textLen(line)+2)
+		width := max(maxX/2, utils.TextLen(line)+2)
 		height := 2
 		x0 := maxX/2 - width/2
 		y0 := maxY/2 - height/2
@@ -351,7 +375,7 @@ func resizeDialogs(g *gocui.Gui, maxX, maxY int) error {
 		width := 0
 		height := 1
 		for line := range strings.SplitSeq(buf, "\n") {
-			width = max(width, textLen(line)+4)
+			width = max(width, utils.TextLen(line)+4)
 			height++
 		}
 		x0 := maxX/2 - width/2
@@ -368,7 +392,7 @@ func resizeDialogs(g *gocui.Gui, maxX, maxY int) error {
 		width := 0
 		height := 1
 		for line := range strings.SplitSeq(buf, "\n") {
-			width = max(width, textLen(line)+4)
+			width = max(width, utils.TextLen(line)+4)
 			height++
 		}
 		if width > maxX {
@@ -410,14 +434,16 @@ func updateViews(g *gocui.Gui) error {
 			switch t.Status {
 			case "OPEN":
 				statusColor = "\x1b[37m" // Yellow
-				if dc := dueColor(t); dc != "" {
-					statusColor = dc
+				if cfg.DueColorEnabled {
+					if dc := utils.DueColor(t.DueDateTime); dc != "" {
+						statusColor = dc
+					}
 				}
 			case "CLOSED":
 				statusColor = "\x1b[32m" // Green
 			}
 			text := fmt.Sprintf(" \x1b[36m[%s%s\x1b[36m]\x1b[0m %s", statusColor, t.Status, t.Title)
-			pad := strings.Repeat(" ", max(0, tasksWidth-textLen(text)))
+			pad := strings.Repeat(" ", max(0, tasksWidth-utils.TextLen(text)))
 			searchedFprintf(tasksView, "%s%s\n", text, pad)
 		}
 		if selectedTask < oy+2 {
@@ -465,7 +491,10 @@ func updateViews(g *gocui.Gui) error {
 		}
 		detailsFprintf(detailsView, cx, cy, showSelection, "Priority: \x1b[1;34m%d\x1b[0m", t.Priority)
 		if t.DueDate != "" {
-			dc := "\x1b[1;33m" + dueColor(t)
+			dc := "\x1b[1;33m"
+			if cfg.DueColorEnabled {
+				dc += utils.DueColor(t.DueDateTime)
+			}
 			detailsFprintf(detailsView, cx, cy, showSelection, "Due Date: %s%s\x1b[0m", dc, t.DueDate)
 		}
 		tagsStr := ""
@@ -650,11 +679,11 @@ func showDetails(g *gocui.Gui, v *gocui.View) error {
 //	  Blue hyperlinks are TASK(ID)s, yellow hyperlinks are tags.
 //	  They are highlighted with a blue background.
 func highlight(cx *int, line string) string {
-	locs := detailsRegEx.FindAllStringIndex(line, -1)
+	locs := utils.DetailsRegEx.FindAllStringIndex(line, -1)
 	for i, loc := range locs {
 		if loc[0] >= *cx || i == len(locs)-1 {
 			linePrefix := line[:loc[0]]
-			linePrefixClean := allANSIRegex.ReplaceAllString(linePrefix, "")
+			linePrefixClean := utils.AllANSIRegex.ReplaceAllString(linePrefix, "")
 			if len(linePrefixClean) < *cx && i != len(locs)-1 {
 				continue
 			}
@@ -672,14 +701,14 @@ func highlight(cx *int, line string) string {
 			var (
 				highlightColor     string
 				currentDetailType  detailType
-				currentDetailValue = allANSIRegex.ReplaceAllString(line[loc[1]:detailEnd], "")
+				currentDetailValue = utils.AllANSIRegex.ReplaceAllString(line[loc[1]:detailEnd], "")
 			)
 			switch originalColor {
 			case "\x1b[34;4m": // TASK(ID) or URL
 				highlightColor = "\x1b[44;37;4m"
-				if taskRegEx.MatchString(currentDetailValue) {
+				if utils.TaskRegEx.MatchString(currentDetailValue) {
 					currentDetailType = taskIDDetail
-				} else if URLRegEx.MatchString(currentDetailValue) {
+				} else if utils.URLRegEx.MatchString(currentDetailValue) {
 					currentDetailType = urlDetail
 				} else {
 					panic(fmt.Sprintf("invalid hyperlink format: %s", currentDetailValue))
@@ -719,18 +748,18 @@ func detailsFprintfLine(v *gocui.View, cx, cy *int, showSelection bool, format s
 	y -= 1 // Convert to 0-based index
 
 	// Highlight TASK(ID) pattern with blue foreground and underline
-	line = taskRegEx.ReplaceAllStringFunc(line, func(match string) string {
+	line = utils.TaskRegEx.ReplaceAllStringFunc(line, func(match string) string {
 		return fmt.Sprintf("\x1b[34;4m%s\x1b[0m", match)
 	})
 	// URLs are highlighted the same way
-	line = URLRegEx.ReplaceAllStringFunc(line, func(match string) string {
+	line = utils.URLRegEx.ReplaceAllStringFunc(line, func(match string) string {
 		return fmt.Sprintf("\x1b[34;4m%s\x1b[0m", match)
 	})
 
 	// Highlight file path patterns with green foreground and underline
 	// E.g. `./path/to/file` or `../path/to/file`
 	// These paths are relative to the current tasks's directory
-	line = filePathRegEx.ReplaceAllStringFunc(line, func(match string) string {
+	line = utils.FilePathRegEx.ReplaceAllStringFunc(line, func(match string) string {
 		return fmt.Sprintf("\x1b[32;4m%s\x1b[0m", match)
 	})
 
@@ -746,7 +775,7 @@ func detailsFprintfLine(v *gocui.View, cx, cy *int, showSelection bool, format s
 			}
 			line += "\x1b[46m \x1b[0m"
 		}
-		currentDetail.value = strings.TrimSpace(allANSIRegex.ReplaceAllString(currentDetail.value, ""))
+		currentDetail.value = strings.TrimSpace(utils.AllANSIRegex.ReplaceAllString(currentDetail.value, ""))
 	}
 
 	searchedFprintf(v, "%s\n", line)
@@ -774,9 +803,9 @@ func copyDetail(g *gocui.Gui, v *gocui.View) error {
 func detailsLeft(g *gocui.Gui, v *gocui.View) error {
 	cx, cy := v.Cursor()
 	// Find the first Bold ANSI escape code before cx and move the cursor to it
-	locs := detailsRegEx.FindAllStringIndex(currentDetail.detailLine, -1)
+	locs := utils.DetailsRegEx.FindAllStringIndex(currentDetail.detailLine, -1)
 	for i := len(locs) - 1; i >= 0; i-- {
-		cleanPrefix := allANSIRegex.ReplaceAllString(currentDetail.detailLine[:locs[i][0]], "")
+		cleanPrefix := utils.AllANSIRegex.ReplaceAllString(currentDetail.detailLine[:locs[i][0]], "")
 		if len(cleanPrefix) < cx {
 			return v.SetCursor(len(cleanPrefix)-1, cy)
 		}
@@ -789,9 +818,9 @@ func detailsLeft(g *gocui.Gui, v *gocui.View) error {
 func detailsRight(g *gocui.Gui, v *gocui.View) error {
 	cx, cy := v.Cursor()
 	// Find the first Bold ANSI escape code after cx and move the cursor to it
-	locs := detailsRegEx.FindAllStringIndex(currentDetail.detailLine, -1)
+	locs := utils.DetailsRegEx.FindAllStringIndex(currentDetail.detailLine, -1)
 	for _, loc := range locs {
-		cleanPrefix := allANSIRegex.ReplaceAllString(currentDetail.detailLine[:loc[0]], "")
+		cleanPrefix := utils.AllANSIRegex.ReplaceAllString(currentDetail.detailLine[:loc[0]], "")
 		if loc[0] > cx {
 			if len(cleanPrefix) <= cx {
 				continue
@@ -808,8 +837,7 @@ func followDetail(g *gocui.Gui, v *gocui.View) error {
 	case normalDetail:
 		return nil
 	case taskIDDetail:
-		re := regexp.MustCompile(`[0-9]{8}-[0-9]{6}`)
-		taskID := re.FindString(currentDetail.value)
+		taskID := utils.IDRegEx.FindString(currentDetail.value)
 		for i, t := range tasks {
 			if t.ID == taskID {
 				selectedTask = i
@@ -845,13 +873,13 @@ func followDetail(g *gocui.Gui, v *gocui.View) error {
 		currentTask := tasks[selectedTask]
 		taskDir := filepath.Join(tigoRoot, currentTask.ID)
 		filePath := filepath.Join(taskDir, currentDetail.value)
-		err := openFile(filePath)
+		err := utils.OpenFile(filePath)
 		if err == os.ErrNotExist {
 			return promptMessageBox(g, "File Not Found", fmt.Sprintf("\x1b[31mFile \x1b[34m`%s`\x1b[31m was not found!", filePath), "details", false)
 		}
 		return err
 	case urlDetail:
-		return openFile(currentDetail.value)
+		return utils.OpenFile(currentDetail.value)
 	}
 	return fmt.Errorf("invalid detail type: %v", currentDetail.type_)
 }
@@ -862,7 +890,7 @@ func openSelectedTaskDirectory(g *gocui.Gui, v *gocui.View) error {
 	}
 	currentTask := tasks[selectedTask]
 	taskDir := filepath.Join(tigoRoot, currentTask.ID)
-	return openFile(taskDir)
+	return utils.OpenFile(taskDir)
 }
 
 func openSelectedTaskFile(g *gocui.Gui, v *gocui.View) error {
@@ -874,7 +902,7 @@ func openSelectedTaskFile(g *gocui.Gui, v *gocui.View) error {
 
 	currentTask := tasks[selectedTask]
 	taskFile := filepath.Join(tigoRoot, currentTask.ID, "TASK.md")
-	err := openInEditor(taskFile)
+	err := utils.OpenInEditor(taskFile)
 	if err != nil {
 		return err
 	}

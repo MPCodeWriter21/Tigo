@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"tigo/pkg/utils"
 )
 
 type Task struct {
@@ -30,44 +32,10 @@ var (
 	TagsRegex     = regexp.MustCompile(`^- TAGS:\s*(.*)$`)
 	DueDateRegex  = regexp.MustCompile(`^- DUE:\s*(.*)$`)
 
-	DateFormats = []string{
-		time.RFC3339,
-		"2006-01-02T15:04:05Z07:00",
-		"2006-01-02T15:04:05+07:00",
-		"2006-01-02 15:04:05+07:00",
-		"2006-01-02 15:04:05 -0700",
-		"2006-01-02 15:04:05Z07:00",
-		"2006-01-02T15:04Z07:00",
-		"2006-01-02T15:04+07:00",
-		"2006-01-02 15:04+07:00",
-		"2006-01-02 15:04 -0700",
-		"2006-01-02 15:04Z07:00",
-		"2006-01-02T15:04:05",
-		"2006-01-02 15:04:05",
-		"2006-01-02T15:04",
-		"2006-01-02 15:04",
-		"2006-01-02",
-	}
-
 	// Errors
 	ErrInvalidTitle = errors.New("invalid title value")
 	ErrEmptyTitle   = errors.New("title cannot be empty")
 )
-
-// ParseDueDateTime parses a date string into a time.Time value.
-// Returns nil if the string cannot be parsed (invalid/empty format).
-func ParseDueDateTime(dueDate string) *time.Time {
-	if dueDate == "" {
-		return nil
-	}
-	for _, f := range DateFormats {
-		t, err := time.Parse(f, dueDate)
-		if err == nil {
-			return &t
-		}
-	}
-	return nil
-}
 
 // Parse reads a TASK.md file and extracts data into a Task object.
 func Parse(id, filePath string) (*Task, error) {
@@ -122,7 +90,7 @@ func Parse(id, filePath string) (*Task, error) {
 
 		if DueDateRegex.MatchString(line) {
 			t.DueDate = strings.TrimSpace(DueDateRegex.FindStringSubmatch(line)[1])
-			t.DueDateTime = ParseDueDateTime(t.DueDate)
+			t.DueDateTime = utils.ParseDueDateTime(t.DueDate)
 			continue
 		}
 

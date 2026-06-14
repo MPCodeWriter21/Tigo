@@ -2,21 +2,14 @@ package ui
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
-	"sort"
-	"strconv"
 	"strings"
-	"time"
-	"unicode/utf8"
 
 	"tigo/internal/config"
 	"tigo/pkg/db"
 	"tigo/pkg/logs"
-	"tigo/pkg/task"
+	"tigo/pkg/utils"
 
 	"github.com/atotto/clipboard"
 	"github.com/awesome-gocui/gocui"
@@ -165,7 +158,7 @@ func searchedFprintf(v *gocui.View, format string, a ...any) {
 			resetColor := "\x1b[49m"
 			// Try to find the last ANSI escape code before the match and use its background color as the reset color,
 			// so that only the searched query is highlighted with the highlight color, and the rest of the line remains the same.
-			ansiMatches := allANSIRegex.FindAllStringIndex(line[:start], -1)
+			ansiMatches := utils.AllANSIRegex.FindAllStringIndex(line[:start], -1)
 			if len(ansiMatches) > 0 {
 				// Loop through results from the last to the first
 				for i := len(ansiMatches) - 1; i >= 0; i-- {
@@ -196,7 +189,7 @@ func centeredFprintf(v *gocui.View, format string, a ...any) (int, error) {
 	trimmedLine := strings.TrimRight(line, "\n")
 	trailingNewLines := line[len(trimmedLine):]
 	width, _ := v.Size()
-	paddingLength := (width - textLen(trimmedLine)) / 2
+	paddingLength := (width - utils.TextLen(trimmedLine)) / 2
 	padding := strings.Repeat(" ", paddingLength)
 	_, err := fmt.Fprintf(v, "%s%s%s%s", padding, trimmedLine, padding, trailingNewLines)
 	return paddingLength, err
@@ -329,286 +322,9 @@ func openConfigFile(g *gocui.Gui, _ *gocui.View) error {
 	defer gocui.Resume()
 
 	configFilePath := filepath.Join(tigoRoot, "config.yaml")
-	err := openInEditor(configFilePath)
+	err := utils.OpenInEditor(configFilePath)
 	if err != nil {
 		return err
 	}
 	return reloadConfig(g, nil)
-}
-
-// textLen returns the length of the text without counting ANSI escape codes.
-// It uses utf8.RuneCountInString to count the number of runes, which correctly handles multi-byte characters.
-func textLen(text string) (length int) {
-	return utf8.RuneCountInString(allANSIRegex.ReplaceAllString(text, ""))
-}
-
-// calcVisualLines returns the number of visual lines the given text would occupy
-// when word-wrapped to contentWidth columns.
-func calcVisualLines(content string, contentWidth int) int {
-	if contentWidth < 1 {
-		contentWidth = 1
-	}
-	lines := 0
-	for line := range strings.SplitSeq(content, "\n") {
-		lineLen := textLen(line)
-		lines += lineLen/contentWidth + 1
-	}
-	return max(lines, 1)
-}
-
-// parseRelativeDateTime takes a string like:
-//   - "tomorrow" -> current time + 1 day
-//   - "next week" -> current time + 1 week
-//   - "next month" -> current time + 1 month
-//   - "30 seconds" -> current time + 30 seconds
-//   - "5 minutes" -> current time + 5 minutes
-//   - "2 hours" -> current time + 2 hours
-//   - "3 days" -> current time + 3 days
-//   - "1 week" -> current time + 1 week
-//   - "2 months" -> current time + 2 months
-//   - "3 seasons" -> current time + 3 * 3 months
-//   - "1 year" -> current time + 1 year
-//   - "next decade" -> current time + 10 years
-//   - "next century" -> current time + 100 years
-//
-// Returns the formatted string, the parsed time.Time, and any error.
-// Date-only values use YYYY-MM-DD format; values with time use RFC3339 (timezone-aware).
-func parseRelativeDateTime(input string) (string, *time.Time, error) {
-	input = strings.TrimSpace(strings.ToLower(input))
-	now := time.Now().Local()
-
-	if input == "today" {
-		t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		return t.Format("2006-01-02"), &t, nil
-	}
-	if input == "tonight" {
-		t := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
-		return t.Format(time.RFC3339), &t, nil
-	}
-	if input == "tomorrow" {
-		t := now.AddDate(0, 0, 1)
-		t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
-		return t.Format("2006-01-02"), &t, nil
-	}
-
-	var seconds, minutes, hours, days, months, years int
-	re := regexp.MustCompile(`^next \s*(second|minute|hour|day|week|month|season|year)s?$`)
-	if re.MatchString(input) {
-		input = re.ReplaceAllString(input, "next $1")
-		switch input {
-		case "next second":
-			seconds = 1
-		case "next minute":
-			minutes = 1
-		case "next hour":
-			hours = 1
-		case "next day":
-			days = 1
-		case "next week":
-			days = 7
-		case "next month":
-			months = 1
-		case "next season":
-			months = 3
-		case "next year":
-			years = 1
-		case "next decade":
-			years = 10
-		case "next century":
-			years = 100
-		}
-		t := now.AddDate(years, months, days).Add(
-			time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second)
-		if seconds == 0 && minutes == 0 && hours == 0 {
-			return t.Format("2006-01-02"), &t, nil
-		} else {
-			return t.Format(time.RFC3339), &t, nil
-		}
-	}
-
-	re = regexp.MustCompile(`^([0-9]+)\s*(second|minute|hour|day|week|month|season|year)s?$`)
-	matches := re.FindStringSubmatch(input)
-	if len(matches) != 3 {
-		return "", nil, fmt.Errorf("invalid relative date format")
-	}
-	value := matches[1]
-	unit := matches[2]
-
-	switch unit {
-	case "second":
-		seconds, _ = strconv.Atoi(value)
-	case "minute":
-		minutes, _ = strconv.Atoi(value)
-	case "hour":
-		hours, _ = strconv.Atoi(value)
-	case "day":
-		days, _ = strconv.Atoi(value)
-	case "week":
-		days, _ = strconv.Atoi(value)
-		days *= 7
-	case "month":
-		months, _ = strconv.Atoi(value)
-	case "season":
-		months, _ = strconv.Atoi(value)
-		months *= 3
-	case "year":
-		years, _ = strconv.Atoi(value)
-	}
-
-	t := now.AddDate(years, months, days).Add(
-		time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second)
-	if seconds == 0 && minutes == 0 && hours == 0 {
-		return t.Format("2006-01-02"), &t, nil
-	} else {
-		return t.Format(time.RFC3339), &t, nil
-	}
-}
-
-// Opens the file at the given path with the default application. Returns an error if it fails.
-func openFile(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return os.ErrNotExist
-	}
-
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.Command("open", path)
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", "", path)
-	default: // linux, freebsd, etc.
-		// Try common launchers in order
-		for _, launcher := range []string{"xdg-open", "gio", "gnome-open", "kde-open", "exo-open", "mimeopen", "termux-open"} {
-			if _, err := exec.LookPath(launcher); err == nil {
-				return exec.Command(launcher, path).Start()
-			}
-		}
-		return fmt.Errorf("no suitable open command found; install xdg-utils or a desktop environment")
-	}
-	return cmd.Start()
-}
-
-// openInEditor opens the given file in the user's default text editor.
-// IMPORTANT: Make sure to suspend the UI before calling this function, and resume it after the editor is closed, to prevent UI glitches:
-//
-//	gocui.Suspend()
-//	defer gocui.Resume()
-func openInEditor(filePath string) error {
-	// 1. Check environment variables
-	if editor := os.Getenv("VISUAL"); editor != "" {
-		return runCommand(editor, filePath)
-	}
-	if editor := os.Getenv("EDITOR"); editor != "" {
-		return runCommand(editor, filePath)
-	}
-
-	switch runtime.GOOS {
-	case "linux", "freebsd", "openbsd", "netbsd", "dragonfly":
-		// 2. Try Debian/Ubuntu alternatives
-		if editor, err := exec.LookPath("sensible-editor"); err == nil {
-			return runCommand(editor, filePath)
-		}
-		if editor, err := exec.LookPath("editor"); err == nil {
-			return runCommand(editor, filePath)
-		}
-
-		// 3. Search common editors
-		for _, ed := range []string{
-			"vim", "vi", "nano", "emacs", "micro", "helix", "code", "gedit", "kate",
-		} {
-			if path, err := exec.LookPath(ed); err == nil {
-				return runCommand(path, filePath)
-			}
-		}
-		return fmt.Errorf("no text editor found; set $VISUAL or $EDITOR")
-
-	case "darwin":
-		// macOS has `open -t` for default text editor
-		return exec.Command("open", "-t", filePath).Start()
-
-	case "windows":
-		// Use `start` to open with associated program
-		return exec.Command("cmd", "/c", "start", "", filePath).Start()
-
-	default:
-		return fmt.Errorf("unsupported OS: %s", runtime.GOOS)
-	}
-}
-
-// runCommand starts a command with arguments; if the editor supports
-// multiple files you might need to split the EDITOR variable smartly.
-func runCommand(editor, filePath string) error {
-	// Handle editors defined with arguments, e.g. "code --wait".
-	parts := strings.Fields(editor)
-	args := append(parts[1:], filePath)
-	cmd := exec.Command(parts[0], args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run() // Run blocks until the editor exits (useful for terminal editors)
-}
-
-// dueColor returns an ANSI color code for the task based on its due date proximity.
-// Returns empty string if due coloring is disabled or no due date is set.
-func dueColor(t *task.Task) string {
-	if !cfg.DueColorEnabled || t.DueDateTime == nil {
-		return ""
-	}
-	now := time.Now()
-	dt := *t.DueDateTime
-	if dt.Before(now) {
-		return "\x1b[38;5;196m" // Red for overdue
-	}
-	if dt.Sub(now) <= 24*time.Hour {
-		return "\x1b[38;5;208m" // Orange for due today
-	}
-	if dt.Sub(now) <= 48*time.Hour {
-		return "\x1b[38;5;220m" // Yellow for due tomorrow
-	}
-	if dt.Sub(now) <= 7*24*time.Hour {
-		return "\x1b[38;5;38m" // This week
-	}
-	return "\x1b[38;5;12m"
-}
-
-// dueDateSorter ranks tasks by due date, using parsed time when available.
-// Falls back to ID comparison when both tasks lack a due date.
-func dueDateSorter(i, j int) bool {
-	a, b := tasks[i], tasks[j]
-	if a.DueDateTime == nil && b.DueDateTime == nil {
-		if a.DueDate == "" || b.DueDate == "" {
-			return a.ID < b.ID
-		}
-		return a.DueDate < b.DueDate
-	}
-	if a.DueDateTime == nil {
-		return false
-	}
-	if b.DueDateTime == nil {
-		return true
-	}
-	if !a.DueDateTime.Equal(*b.DueDateTime) {
-		return a.DueDateTime.Before(*b.DueDateTime)
-	}
-	return a.DueDate < b.DueDate
-}
-
-// sortedKeysByValue returns a slice of the map's keys sorted by their values in descending order
-// If two keys have the same value, they are sorted in alphabetical order.
-func sortedKeysByValue(m map[string]int) []string {
-	// Extract keys into a slice
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-
-	// Sort the keys based on map values
-	sort.Slice(keys, func(i, j int) bool {
-		if m[keys[i]] == m[keys[j]] {
-			return keys[i] < keys[j]
-		}
-		return m[keys[i]] > m[keys[j]]
-	})
-
-	return keys
 }

@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"tigo/pkg/utils"
 	"tigo/pkg/git"
 	"tigo/pkg/logs"
 	"tigo/pkg/task"
@@ -454,7 +455,7 @@ func showLineBlame(g *gocui.Gui, v *gocui.View) error {
 
 	author := names[taskLine]
 	lastMod := times[taskLine].Format("2006-01-02 15:04:05")
-	cleanLine := strings.TrimSpace(allANSIRegex.ReplaceAllString(lineText, ""))
+	cleanLine := strings.TrimSpace(utils.AllANSIRegex.ReplaceAllString(lineText, ""))
 
 	msg := fmt.Sprintf(
 		"\x1b[1;36mLine %d\x1b[0m (TASK.md:%d)\n\n"+
