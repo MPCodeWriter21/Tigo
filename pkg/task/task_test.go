@@ -78,3 +78,38 @@ With multiple lines.`
 		t.Errorf("Expected due date '2026-06-01', got '%s'", task2.DueDate)
 	}
 }
+
+func TestValidate_EmptyTitle(t *testing.T) {
+	err := Validate(&Task{Title: ""})
+	if err != ErrEmptyTitle {
+		t.Errorf("expected ErrEmptyTitle, got %v", err)
+	}
+}
+
+func TestValidate_ValidTitle(t *testing.T) {
+	err := Validate(&Task{Title: "Valid Task"})
+	if err != nil {
+		t.Errorf("expected nil, got %v", err)
+	}
+}
+
+func TestValidate_TitleWithNewline(t *testing.T) {
+	err := Validate(&Task{Title: "Task\nWithNewline"})
+	if err != ErrInvalidTitle {
+		t.Errorf("expected ErrInvalidTitle, got %v", err)
+	}
+}
+
+func TestValidate_TitleWithCarriageReturn(t *testing.T) {
+	err := Validate(&Task{Title: "Task\rWithCR"})
+	if err != ErrInvalidTitle {
+		t.Errorf("expected ErrInvalidTitle, got %v", err)
+	}
+}
+
+func TestValidate_WhitespaceOnlyTitle(t *testing.T) {
+	err := Validate(&Task{Title: "   "})
+	if err != ErrEmptyTitle {
+		t.Errorf("expected ErrEmptyTitle, got %v", err)
+	}
+}

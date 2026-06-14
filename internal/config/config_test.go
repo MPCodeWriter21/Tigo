@@ -129,6 +129,93 @@ func TestLoadConfigFromPath_FileNotFound(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_InvalidUserConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("APPDATA", filepath.Join(home, ".config"))
+	t.Setenv("USERPROFILE", home)
+
+	userConfigDir := filepath.Join(home, ".config", "tigo")
+	os.MkdirAll(userConfigDir, 0755)
+	os.WriteFile(filepath.Join(userConfigDir, "config.yaml"),
+		[]byte(`sort_by: invalid`), 0644)
+
+	cfgDir := t.TempDir()
+	os.MkdirAll(filepath.Join(cfgDir, ".tigo"), 0755)
+
+	_, err := LoadConfig(filepath.Join(cfgDir, ".tigo"))
+	if err == nil {
+		t.Fatal("expected error for invalid user config, got nil")
+	}
+}
+
+func TestLoadConfig_InvalidLocalConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("APPDATA", filepath.Join(home, ".config"))
+	t.Setenv("USERPROFILE", home)
+
+	cfgDir := t.TempDir()
+	localCfgDir := filepath.Join(cfgDir, ".tigo")
+	os.MkdirAll(localCfgDir, 0755)
+	os.WriteFile(filepath.Join(localCfgDir, "config.yaml"),
+		[]byte(`frame_style: bogus`), 0644)
+
+	_, err := LoadConfig(localCfgDir)
+	if err == nil {
+		t.Fatal("expected error for invalid local config, got nil")
+	}
+}
+
+func TestLoadConfig_InvalidDefaultConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("APPDATA", filepath.Join(home, ".config"))
+	t.Setenv("USERPROFILE", home)
+
+	defaultCfgDir := filepath.Join(home, ".local", "share", "tigo")
+	os.MkdirAll(defaultCfgDir, 0755)
+	os.WriteFile(filepath.Join(defaultCfgDir, "config.yaml"),
+		[]byte(`default_priority: -1`), 0644)
+
+	cfgDir := t.TempDir()
+	_, err := LoadConfig(filepath.Join(cfgDir, ".tigo"))
+	if err == nil {
+		t.Fatal("expected error for invalid default config, got nil")
+	}
+}
+
+func TestLoadConfig_OnlyDefaultConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("APPDATA", filepath.Join(home, ".config"))
+	t.Setenv("USERPROFILE", home)
+
+	defaultCfgDir := filepath.Join(home, ".local", "share", "tigo")
+	os.MkdirAll(defaultCfgDir, 0755)
+	os.WriteFile(filepath.Join(defaultCfgDir, "config.yaml"),
+		[]byte(`default_priority: 90`), 0644)
+
+	cfgDir := t.TempDir()
+	os.MkdirAll(filepath.Join(cfgDir, ".tigo"), 0755)
+
+	origCwd, _ := os.Getwd()
+	defer os.Chdir(origCwd)
+	os.Chdir(cfgDir)
+
+	cfg, err := LoadConfig(filepath.Join(cfgDir, ".tigo"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.DefaultPriority != 90 {
+		t.Errorf("DefaultPriority = %d; want 90", cfg.DefaultPriority)
+	}
+}
+
 func TestLoadConfig(t *testing.T) {
 	// Create a temporary home‑like structure
 	home := t.TempDir()

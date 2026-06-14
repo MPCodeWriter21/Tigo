@@ -46,6 +46,16 @@ func TestClear(t *testing.T) {
 	}
 }
 
+func TestSetMaxSize_NoTruncationNeeded(t *testing.T) {
+	Clear()
+	Append(LevelInfo, "only one entry")
+	SetMaxSize(10) // entries (1) <= maxSize (10) → no truncation
+	entries := Entries()
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+}
+
 func TestMaxSize(t *testing.T) {
 	Clear()
 
@@ -62,6 +72,51 @@ func TestMaxSize(t *testing.T) {
 	}
 	if entries[9].Message != "msg 19" {
 		t.Errorf("expected 'msg 19', got '%s'", entries[9].Message)
+	}
+}
+
+func TestSetMaxSize_Exported(t *testing.T) {
+	Clear()
+	SetMaxSize(5)
+	for i := range 10 {
+		Append(LevelInfo, "msg %d", i)
+	}
+	entries := Entries()
+	if len(entries) != 5 {
+		t.Fatalf("expected 5 entries, got %d", len(entries))
+	}
+	if entries[0].Message != "msg 5" {
+		t.Errorf("expected 'msg 5', got '%s'", entries[0].Message)
+	}
+	SetMaxSize(500) // restore default for other tests
+}
+
+func TestRegisterAndUnregisterCallback(t *testing.T) {
+	Clear()
+	called := 0
+	cb := func() { called++ }
+
+	RegisterCallback("test-cb", cb)
+	Append(LevelInfo, "trigger callback")
+	if called != 1 {
+		t.Errorf("expected callback to be called 1 time, got %d", called)
+	}
+
+	UnregisterCallback("test-cb")
+	Append(LevelInfo, "no callback")
+	if called != 1 {
+		t.Errorf("expected callback to be called 1 time (unchanged), got %d", called)
+	}
+}
+
+func TestEntries_ReturnsCopy(t *testing.T) {
+	Clear()
+	Append(LevelInfo, "original")
+	entries := Entries()
+	entries[0].Message = "modified"
+	original := Entries()
+	if original[0].Message != "original" {
+		t.Errorf("Entries() returned mutable copy; got %q, want 'original'", original[0].Message)
 	}
 }
 

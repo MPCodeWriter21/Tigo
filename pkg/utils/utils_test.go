@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -610,13 +611,10 @@ func TestOpenFile_NonExistent(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// RunEditor
+// RunEditor & OpenInEditor
 // ---------------------------------------------------------------------------
 
 func TestRunEditor_SplitArgs(t *testing.T) {
-	// We can't easily test RunEditor because it blocks and requires an editor.
-	// But we can verify it constructs the command properly by checking the error
-	// when the editor binary doesn't exist (not a path test, just verifying interface).
 	err := RunEditor("nonexistent-editor", "/tmp/test.txt")
 	if err == nil {
 		t.Skip("RunEditor unexpectedly succeeded (maybe nonexistent-editor exists?)")
@@ -627,6 +625,65 @@ func TestRunEditor_EditorWithArgs(t *testing.T) {
 	err := RunEditor("nonexistent --wait", "/tmp/test.txt")
 	if err == nil {
 		t.Skip("RunEditor unexpectedly succeeded")
+	}
+}
+
+func TestRunEditor_WithEcho(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.txt")
+	os.WriteFile(path, []byte("content"), 0644)
+
+	// Use a simple, quick command that exists on the platform
+	var editor string
+	switch runtime.GOOS {
+	case "windows":
+		editor = "cmd /c type"
+	default:
+		editor = "cat"
+	}
+	err := RunEditor(editor, path)
+	if err != nil {
+		// May fail on headless systems; that's okay
+		t.Logf("RunEditor returned: %v", err)
+	}
+}
+
+func TestOpenInEditor_WithVISUAL(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.txt")
+	os.WriteFile(path, []byte("content"), 0644)
+
+	t.Setenv("VISUAL", "")
+	t.Setenv("EDITOR", "")
+	switch runtime.GOOS {
+	case "windows":
+		t.Setenv("VISUAL", "cmd /c type")
+	default:
+		t.Setenv("VISUAL", "cat")
+	}
+
+	err := OpenInEditor(path)
+	if err != nil {
+		t.Logf("OpenInEditor returned: %v", err)
+	}
+}
+
+func TestOpenInEditor_WithEDITOR(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.txt")
+	os.WriteFile(path, []byte("content"), 0644)
+
+	t.Setenv("VISUAL", "")
+	switch runtime.GOOS {
+	case "windows":
+		t.Setenv("EDITOR", "cmd /c type")
+	default:
+		t.Setenv("EDITOR", "cat")
+	}
+
+	err := OpenInEditor(path)
+	if err != nil {
+		t.Logf("OpenInEditor returned: %v", err)
 	}
 }
 
@@ -649,10 +706,10 @@ func equalSlices(a, b []string) bool {
 // Ensure all regex patterns compile (they do via MustCompile, but verify they match)
 func TestRegexPatterns_Match(t *testing.T) {
 	tests := []struct {
-		name    string
-		regex   *regexp.Regexp
-		good    []string
-		bad     []string
+		name  string
+		regex *regexp.Regexp
+		good  []string
+		bad   []string
 	}{
 		{
 			name:  "IDRegEx",

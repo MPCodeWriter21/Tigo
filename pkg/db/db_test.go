@@ -12,6 +12,33 @@ import (
 	"tigo/pkg/task"
 )
 
+func TestResolveRoot_ReturnsNonEmpty(t *testing.T) {
+	root := ResolveRoot()
+	if root == "" {
+		t.Fatal("ResolveRoot() returned empty string")
+	}
+	// Should be an absolute path
+	if !filepath.IsAbs(root) {
+		t.Errorf("ResolveRoot() = %q; want absolute path", root)
+	}
+}
+
+func TestResolveRoot_WithLocalTigoDir(t *testing.T) {
+	tempDir := t.TempDir()
+	origCwd, _ := os.Getwd()
+	defer os.Chdir(origCwd)
+	os.Chdir(tempDir)
+
+	// Create a .tigo directory
+	tigoDir := filepath.Join(tempDir, ".tigo")
+	os.MkdirAll(tigoDir, 0755)
+
+	root := ResolveRoot()
+	if root != tigoDir {
+		t.Errorf("ResolveRoot() = %q; want %q", root, tigoDir)
+	}
+}
+
 func TestInit(t *testing.T) {
 	tempDir := t.TempDir()
 	root := filepath.Join(tempDir, ".tigo")
