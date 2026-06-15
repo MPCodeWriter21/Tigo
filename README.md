@@ -166,6 +166,12 @@ in the details view.
 
 Git commands are logged in the logs view (`L` to focus, `C` to clear).
 
+Contributing
+------------
+
+Contributions are welcome! Feel free to open issues and submit pull requests. If you
+find Tigo useful, consider starring the repo on [GitHub](https://github.com/MPCodeWriter21/Tigo).
+
 Inspired by
 -----------
 
