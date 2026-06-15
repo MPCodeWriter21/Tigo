@@ -5,10 +5,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"tigo/pkg/git"
 	"tigo/pkg/logs"
 	"tigo/pkg/task"
 	"time"
 )
+
+func ResolveDefaultRoot() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(homeDir, ".local", "share", "tigo"), nil
+}
 
 // ResolveRoot figures out the task root directory.
 // Checks if `./.tigo` exists. If not, uses `$HOME/.local/share/tigo`.
@@ -21,18 +31,29 @@ func ResolveRoot() string {
 		}
 	}
 
-	homeDir, err := os.UserHomeDir()
+	defaultRoot, err := ResolveDefaultRoot()
 	if err != nil {
 		// Fallback if no home dir
 		return filepath.Join(cwd, ".tigo")
 	}
 
-	return filepath.Join(homeDir, ".local", "share", "tigo")
+	return defaultRoot
 }
 
 // Init ensures the root directory exists.
 func Init(root string) error {
-	return os.MkdirAll(root, 0755)
+	err := os.MkdirAll(root, 0755)
+	if err != nil {
+		return err
+	}
+	defaultRoot, err := ResolveDefaultRoot()
+	if err == nil && root == defaultRoot {
+		if hasGit, _ := git.HasGit(); hasGit && !git.IsGitRepo(root) {
+			logs.Append(logs.LevelInfo, "Initializing git repository in %s", root)
+			git.RunGitCommand(root, "init")
+		}
+	}
+	return nil
 }
 
 // GenerateID creates a new taskId formatted as [0-9]{8}-[0-9]{6} based on UTC

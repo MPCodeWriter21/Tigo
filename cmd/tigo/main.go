@@ -12,7 +12,7 @@ import (
 
 // The value of `version` is supposed to be set using `-ldflags` during build time. If not set, it defaults to "dev".
 // `go build -ldflags="-X main.version=$(git rev-parse --short HEAD)" ./cmd/tigo` will set the `version` variable to the current git commit hash.
-var version = "0.2.0-dev"
+var version = "dev"
 
 func main() {
 	helpFlag := flag.Bool("h", false, "Show the help")

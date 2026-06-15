@@ -455,3 +455,80 @@ func TestToggleStatus_FiresLog(t *testing.T) {
 		t.Error("expected log entry containing task ID and new status after ToggleStatus")
 	}
 }
+
+func TestResolveDefaultRoot(t *testing.T) {
+	root, err := ResolveDefaultRoot()
+	if err != nil {
+		t.Fatalf("ResolveDefaultRoot failed: %v", err)
+	}
+	if root == "" {
+		t.Fatal("ResolveDefaultRoot returned empty string")
+	}
+	if !filepath.IsAbs(root) {
+		t.Errorf("ResolveDefaultRoot = %q; want absolute path", root)
+	}
+	if !strings.HasSuffix(root, filepath.Join(".local", "share", "tigo")) {
+		t.Errorf("ResolveDefaultRoot = %q; want suffix .local/share/tigo", root)
+	}
+}
+
+func TestResolveRoot_FallbackToDefaultRoot(t *testing.T) {
+	tempDir := t.TempDir()
+	origCwd, _ := os.Getwd()
+	defer os.Chdir(origCwd)
+	os.Chdir(tempDir)
+
+	root := ResolveRoot()
+	expected, _ := ResolveDefaultRoot()
+	if root != expected {
+		t.Errorf("ResolveRoot() = %q; want default root %q", root, expected)
+	}
+}
+
+func TestInit_DefaultRoot(t *testing.T) {
+	root, err := ResolveDefaultRoot()
+	if err != nil {
+		t.Skip("ResolveDefaultRoot failed:", err)
+	}
+	os.RemoveAll(root)
+	t.Cleanup(func() { os.RemoveAll(root) })
+
+	err = Init(root)
+	if err != nil {
+		t.Fatalf("Init with default root failed: %v", err)
+	}
+
+	info, err := os.Stat(root)
+	if err != nil {
+		t.Fatalf("Stat after Init failed: %v", err)
+	}
+	if !info.IsDir() {
+		t.Fatal("Init did not create a directory")
+	}
+}
+
+func TestToggleStatus_SerializeFailure(t *testing.T) {
+	tempDir := t.TempDir()
+	root := filepath.Join(tempDir, ".tigo")
+	Init(root)
+
+	id, err := CreateNewTask(root, "Serialize Fail", 50, nil, "", "")
+	if err != nil {
+		t.Fatalf("CreateNewTask failed: %v", err)
+	}
+
+	taskFile := filepath.Join(root, id, "TASK.md")
+	os.Chmod(taskFile, 0444)
+	// Restore permissions so temp dir cleanup works
+	defer os.Chmod(taskFile, 0644)
+
+	parsed, err := task.Parse(id, taskFile)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	_, err = ToggleStatus(root, parsed)
+	if err == nil {
+		t.Fatal("expected error when TASK.md is read-only")
+	}
+}
