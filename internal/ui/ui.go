@@ -102,7 +102,7 @@ func Run(root string, conf *config.TigoConfig) error {
 		startupErr = nil
 		g.Update(func(g *gocui.Gui) error {
 			return promptMessageBox(g, "Invalid Config",
-				fmt.Sprintf("\x1b[31mConfig file has errors:\x1b[0m\n%s\n\nPress Enter to continue.",
+				fmt.Sprintf("\x1b[31mConfig file has errors:\x1b[39m\n%s\n\nPress Enter to continue.",
 					err.Error()),
 				"tasks", false)
 		})
@@ -442,7 +442,7 @@ func updateViews(g *gocui.Gui) error {
 			case "CLOSED":
 				statusColor = "\x1b[32m" // Green
 			}
-			text := fmt.Sprintf(" \x1b[36m[%s%s\x1b[36m]\x1b[0m %s", statusColor, t.Status, t.Title)
+			text := fmt.Sprintf(" \x1b[36m[%s%s\x1b[36m]\x1b[39m %s", statusColor, t.Status, t.Title)
 			pad := strings.Repeat(" ", max(0, tasksWidth-utils.TextLen(text)))
 			searchedFprintf(tasksView, "%s%s\n", text, pad)
 		}
@@ -459,12 +459,12 @@ func updateViews(g *gocui.Gui) error {
 		tasksView.SetCursor(0, selectedTask-oy)
 	} else {
 		tasksView.Highlight = false
-		fmt.Fprintln(tasksView, "\x1b[31mNo tasks found.\x1b[0m")
+		fmt.Fprintln(tasksView, "\x1b[31mNo tasks found.\x1b[39m")
 		if searchQuery.value != "" {
-			fmt.Fprintf(tasksView, "Search query: \x1b[32m\"%s\"\x1b[0m\n", searchQuery.value)
+			fmt.Fprintf(tasksView, "Search query: \x1b[32m\"%s\"\x1b[39m\n", searchQuery.value)
 		}
-		fmt.Fprintf(tasksView, "Directory: \x1b[32m\"%s\"\x1b[0m\n", tigoRoot)
-		fmt.Fprintln(tasksView, "\n\x1b[34mPress 'n' to create a new task.\x1b[0m")
+		fmt.Fprintf(tasksView, "Directory: \x1b[32m\"%s\"\x1b[39m\n", tigoRoot)
+		fmt.Fprintln(tasksView, "\n\x1b[34mPress 'n' to create a new task.\x1b[39m")
 	}
 
 	// details view
@@ -532,7 +532,7 @@ func updateViews(g *gocui.Gui) error {
 			case logs.LevelGit:
 				color = "\x1b[36m"
 			}
-			fmt.Fprintf(logsView, "[\x1b[36m%s\x1b[0m] [%s%s\x1b[0m] \x1b[1;37m%s\x1b[0m\n", timeStr, color, e.Level, e.Message)
+			fmt.Fprintf(logsView, "[\x1b[36m%s\x1b[39m] [%s%s\x1b[39m] \x1b[1;37m%s\x1b[0m\n", timeStr, color, e.Level, e.Message)
 		}
 		_, logsHeight := logsView.Size()
 		cy = max(cy, logsHeight-3)
@@ -773,7 +773,7 @@ func detailsFprintfLine(v *gocui.View, cx, cy *int, showSelection bool, format s
 				value:      line,
 				detailLine: line,
 			}
-			line += "\x1b[46m \x1b[0m"
+			line += "\x1b[46m \x1b[49m"
 		}
 		currentDetail.value = strings.TrimSpace(utils.AllANSIRegex.ReplaceAllString(currentDetail.value, ""))
 	}
@@ -793,7 +793,7 @@ func detailsFprintf(v *gocui.View, cx, cy *int, showSelection bool, format strin
 func copyDetail(g *gocui.Gui, v *gocui.View) error {
 	if currentDetail.value != "" {
 		clipboard.WriteAll(currentDetail.value)
-		logs.Append(logs.LevelInfo, "Copied to clipboard: \x1b[32m%q\x1b[0m", currentDetail.value)
+		logs.Append(logs.LevelInfo, "Copied to clipboard: \x1b[32m%q\x1b[39m", currentDetail.value)
 	}
 	return nil
 }

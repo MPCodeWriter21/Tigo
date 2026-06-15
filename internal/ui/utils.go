@@ -88,7 +88,7 @@ func copyLine(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}
 	clipboard.WriteAll(line)
-	logs.Append(logs.LevelInfo, "Copied line to clipboard: \x1b[32m%q\x1b[0m", line)
+	logs.Append(logs.LevelInfo, "Copied line to clipboard: \x1b[32m%q\x1b[39m", line)
 	return nil
 }
 
@@ -295,7 +295,7 @@ func reloadConfig(g *gocui.Gui, _ *gocui.View) error {
 	newCfg, err := config.LoadConfig(tigoRoot)
 	if err != nil {
 		return promptMessageBox(g, "Invalid Config",
-			fmt.Sprintf("\x1b[31mFailed to reload config:\x1b[0m\n%s\nCurrent config is unchanged.", err.Error()),
+			fmt.Sprintf("\x1b[31mFailed to reload config:\x1b[39m\n%s\nCurrent config is unchanged.", err.Error()),
 			"tasks", false)
 	}
 	cfg = newCfg

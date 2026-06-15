@@ -356,10 +356,10 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 				if parsedDateTime == nil {
 					err := promptMessageBox(
 						g, "Invalid Due Date",
-						"\x1b[31mUnsupported date format!\x1b[0m Valid examples:\n"+
-							"\t- \x1b[34mAbsolute\x1b[0m: 2024-12-31, 2024-12-31 23:59, 2024-12-31 23:59:59\n"+
-							"\t- \x1b[34mRelative\x1b[0m: today, tonight, tomorrow, next week, 1 month, 3 days, 2 weeks, etc.\n"+
-							"\t- \x1b[34mEmpty\x1b[0m due means no due date",
+						"\x1b[31mUnsupported date format!\x1b[39m Valid examples:\n"+
+							"\t- \x1b[34mAbsolute\x1b[39m: 2024-12-31, 2024-12-31 23:59, 2024-12-31 23:59:59\n"+
+							"\t- \x1b[34mRelative\x1b[39m: today, tonight, tomorrow, next week, 1 month, 3 days, 2 weeks, etc.\n"+
+							"\t- \x1b[34mEmpty\x1b[39m due means no due date",
 						"taskDialogDueDate", true)
 					if err != nil {
 						return err

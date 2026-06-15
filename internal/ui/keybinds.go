@@ -185,7 +185,7 @@ func promptHelpKeybindings(g *gocui.Gui, v *gocui.View) error {
 			// I am not sure if I should underline the description to somewhat separate them from the next keybind
 			// White underlined: \x1b[37m;4m
 			desc := fmt.Sprintf("\x1b[37m%s%s", padding, kd.description)
-			fmt.Fprintf(&message, "%s%-*s\x1b[0m\n", desc, width-utils.TextLen(desc)-1, " ")
+			fmt.Fprintf(&message, "%s%-*s\x1b[39m\n", desc, width-utils.TextLen(desc)-1, " ")
 		}
 	}
 	if height > maxY {

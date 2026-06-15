@@ -174,23 +174,23 @@ func gitStatusString() string {
 			}
 		}
 	}
-	sb.WriteString("\x1b[0m ")
+	sb.WriteString("\x1b[39m ")
 
 	if gitDirty {
-		sb.WriteString("\x1b[33m\u25cf uncommitted\x1b[0m")
+		sb.WriteString("\x1b[33m\u25cf uncommitted\x1b[39m")
 	} else {
-		sb.WriteString("\x1b[32m\u25cf clean\x1b[0m")
+		sb.WriteString("\x1b[32m\u25cf clean\x1b[39m")
 	}
 	return sb.String()
 }
 
 func promptCommit(g *gocui.Gui, v *gocui.View) error {
 	if !gitRepo {
-		return promptMessageBox(g, "Not a Git Repo", "\x1b[31mThe current tigo directory is not in a git repository.\x1b[0m", "", false)
+		return promptMessageBox(g, "Not a Git Repo", "\x1b[31mThe current tigo directory is not in a git repository.", "", false)
 	}
 	updateGitState()
 	if !gitDirty {
-		return promptMessageBox(g, "Nothing to Commit", "\x1b[33mNo uncommitted changes and no session changes to commit.\x1b[0m", "", false)
+		return promptMessageBox(g, "Nothing to Commit", "\x1b[33mNo uncommitted changes and no session changes to commit.", "", false)
 	}
 
 	statusOut, _ := git.RunGitCommandQuiet(tigoRoot, "status", "--porcelain", ".")
@@ -235,10 +235,10 @@ func promptCommit(g *gocui.Gui, v *gocui.View) error {
 				default:
 					color = "\x1b[37m"
 				}
-				fmt.Fprintf(v, "%s%s\x1b[0m %s\n", color, statusChars, filePath)
+				fmt.Fprintf(v, "%s%s\x1b[39m %s\n", color, statusChars, filePath)
 			}
 		} else {
-			fmt.Fprint(v, "\x1b[33m(empty)\x1b[0m\n")
+			fmt.Fprint(v, "\x1b[33m(empty)\x1b[39m\n")
 		}
 	}
 
@@ -319,10 +319,10 @@ func showTaskBlame(g *gocui.Gui, v *gocui.View) error {
 
 	times, names, err := git.BlameTask(tigoRoot, t.ID)
 	if err != nil {
-		return promptMessageBox(g, "Blame Error", fmt.Sprintf("\x1b[31m%s\x1b[0m", err), "", false)
+		return promptMessageBox(g, "Blame Error", fmt.Sprintf("\x1b[31m%s", err), "", false)
 	}
 	if len(names) == 0 {
-		return promptMessageBox(g, "Blame Summary", "\x1b[33mNo blame data available (file may not be committed yet).\x1b[0m", "", false)
+		return promptMessageBox(g, "Blame Summary", "\x1b[33mNo blame data available (file may not be committed yet).", "", false)
 	}
 
 	type authorStat struct {
@@ -361,14 +361,14 @@ func showTaskBlame(g *gocui.Gui, v *gocui.View) error {
 	fmt.Fprintf(&sb, "\x1b[1;36mLines\x1b[0m: %d\n\n", len(names))
 	fmt.Fprintf(&sb, "\x1b[1;36mContributors\x1b[0m:\n")
 	for _, s := range sorted {
-		fmt.Fprintf(&sb, "  \x1b[33m%s\x1b[0m: %d lines (%s)\n", s.name, s.stat.count, s.stat.lastTime.Format("2006-01-02"))
+		fmt.Fprintf(&sb, "  \x1b[33m%s\x1b[39m: %d lines (%s)\n", s.name, s.stat.count, s.stat.lastTime.Format("2006-01-02"))
 	}
 
 	return promptMessageBox(g, "Blame Summary", sb.String(), "", false)
 }
 
 func showLineBlame(g *gocui.Gui, v *gocui.View) error {
-	if len(tasks) == 0 || selectedTask >= len(tasks) || selectedTask >= 0 {
+	if len(tasks) == 0 || selectedTask >= len(tasks) || selectedTask < 0 {
 		return nil
 	}
 	t := tasks[selectedTask]
@@ -381,7 +381,7 @@ func showLineBlame(g *gocui.Gui, v *gocui.View) error {
 
 	times, names, err := git.BlameTask(tigoRoot, t.ID)
 	if err != nil {
-		return promptMessageBox(g, "Blame Error", fmt.Sprintf("\x1b[31m%s\x1b[0m", err), "", false)
+		return promptMessageBox(g, "Blame Error", fmt.Sprintf("\x1b[31m%s", err), "", false)
 	}
 	if len(names) == 0 {
 		return nil
@@ -459,8 +459,8 @@ func showLineBlame(g *gocui.Gui, v *gocui.View) error {
 
 	msg := fmt.Sprintf(
 		"\x1b[1;36mLine %d\x1b[0m (TASK.md:%d)\n\n"+
-			"\x1b[33mAuthor\x1b[0m: %s\n"+
-			"\x1b[33mDate\x1b[0m:   %s\n\n"+
+			"\x1b[33mAuthor\x1b[39m: %s\n"+
+			"\x1b[33mDate\x1b[39m:   %s\n\n"+
 			"\x1b[1;37m%s\x1b[0m",
 		cy, taskLine+1, author, lastMod, cleanLine)
 
@@ -478,10 +478,10 @@ func gitFetch(g *gocui.Gui, _ *gocui.View) error {
 		text := "Fetch "
 		var level logs.Level
 		if err != nil {
-			text += fmt.Sprintf("\x1b[31mfailed\x1b[0m: %v", err)
+			text += fmt.Sprintf("\x1b[31mfailed\x1b[39m: %v", err)
 			level = logs.LevelWarn
 		} else {
-			text += "\x1b[32mcompleted\x1b[0m"
+			text += "\x1b[32mcompleted\x1b[39m"
 			level = logs.LevelGit
 		}
 		if out != "" {
@@ -499,16 +499,16 @@ func gitPull(g *gocui.Gui, _ *gocui.View) error {
 	}
 	if !gitOpInProgress.CompareAndSwap(gitOpNone, gitOpPull) {
 		return promptMessageBox(g, "Git Operation",
-			"\x1b[33mA push or pull is already in progress.\x1b[0m", "", false)
+			"\x1b[33mA push or pull is already in progress.", "", false)
 	}
 	go func() {
 		defer gitOpInProgress.Store(gitOpNone)
 		out, err := git.RunGitCommand(tigoRoot, "pull", "--no-edit")
 		updateGitState()
 		if err != nil {
-			logs.Append(logs.LevelError, "Pull \x1b[31mfailed\x1b[0m: %v\n%s", err, out)
+			logs.Append(logs.LevelError, "Pull \x1b[31mfailed\x1b[39m: %v\n%s", err, out)
 		} else {
-			logs.Append(logs.LevelGit, "Pull \x1b[32mcompleted\x1b[0m successfully:\n%s", out)
+			logs.Append(logs.LevelGit, "Pull \x1b[32mcompleted\x1b[39m successfully:\n%s", out)
 		}
 	}()
 	return nil
@@ -520,16 +520,16 @@ func gitPush(g *gocui.Gui, _ *gocui.View) error {
 	}
 	if !gitOpInProgress.CompareAndSwap(gitOpNone, gitOpPush) {
 		return promptMessageBox(g, "Git Operation",
-			"\x1b[33mA push or pull is already in progress.\x1b[0m", "", false)
+			"\x1b[33mA push or pull is already in progress.", "", false)
 	}
 	go func() {
 		defer gitOpInProgress.Store(gitOpNone)
 		out, err := git.RunGitCommand(tigoRoot, "push")
 		updateGitState()
 		if err != nil {
-			logs.Append(logs.LevelError, "Push \x1b[31mfailed\x1b[0m: %v\n%s", err, out)
+			logs.Append(logs.LevelError, "Push \x1b[31mfailed\x1b[39m: %v\n%s", err, out)
 		} else {
-			logs.Append(logs.LevelGit, "Push \x1b[32mcompleted\x1b[0m successfully:\n%s", out)
+			logs.Append(logs.LevelGit, "Push \x1b[32mcompleted\x1b[39m successfully:\n%s", out)
 		}
 	}()
 	return nil
