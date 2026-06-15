@@ -1,0 +1,82 @@
+.TH TIGO 1 "2026-06-15" "tigo" "Tigo Manual"
+.SH NAME
+tigo \- terminal-based TODO/task management program
+.SH SYNOPSIS
+.B tigo
+[OPTIONS] [\fIroot\fR]
+.SH DESCRIPTION
+Tigo is a terminal-based TODO/task management program written in Go.
+Tasks are stored as \fBTASK.md\fR files inside timestamped directories,
+making them grep-able, diff-able, and git-friendly.
+.PP
+If a \fIroot\fR directory is provided, Tigo uses it as the task database.
+Otherwise it looks for a \fB.tigo\fR directory in the current working
+directory. If that does not exist, it falls back to
+\fB~/.local/share/tigo\fR.
+.SH OPTIONS
+.TP
+.B \-h, \-\-help
+Show the help message and exit.
+.TP
+.B \-v, \-\-version
+Show the version and exit.
+.TP
+.B \-\-default-config
+Print the default configuration to stdout and exit.
+.TP
+.B \-\-user-config-path
+Print the path to the user configuration file and exit.
+.SH CONFIGURATION
+Tigo loads configuration from YAML files with the following precedence
+(highest wins):
+.PP
+1. \fB.tigo/config.yaml\fR (local, per-directory override)
+.br
+2. \fB~/.config/tigo/config.yaml\fR (user config, XDG compliant)
+.br
+3. Built-in defaults
+.PP
+Configuration options:
+.TP
+.B sort_by
+Sort tasks by \fIid\fR, \fIpriority\fR, \fIdue-date\fR, or \fItitle\fR (default: id).
+.TP
+.B default_priority
+Default priority for new tasks (default: 50).
+.TP
+.B frame_style
+Frame border style: \fIround\fR, \fIdouble\fR, or \fIsingle\fR (default: round).
+.TP
+.B show_closed
+Show closed tasks in the list (default: false).
+.TP
+.B due_color_enabled
+Color due dates by proximity (default: true).
+.SH TASK STORAGE
+Each task is stored in a directory named \fBYYYYMMDD-HHmmss\fR containing a
+\fBTASK.md\fR file. The file format:
+.PP
+.EX
+# Title of the task
+
+- STATUS: OPEN
+- PRIORITY: 70
+- TAGS: bug, UI
+- DUE: 2026-05-11
+
+Description of the task goes here.
+.EE
+.SH FILES
+.TP
+\fB~/.local/share/tigo/\fR
+Default task database directory.
+.TP
+\fB~/.config/tigo/config.yaml\fR
+User configuration file.
+.TP
+\fB.tigo/config.yaml\fR
+Local per-directory configuration override.
+.SH AUTHORS
+Mehrad Pooryoussof (CodeWriter21).
+.SH SEE ALSO
+.IR "Tigo on GitHub" " <https://github.com/MPCodeWriter21/Tigo>"

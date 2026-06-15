@@ -85,6 +85,24 @@ jobs:
             -o "$output" \
             ./cmd/tigo
 
+      - name: Build Linux packages
+        if: matrix.os == 'linux'
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+
+          # Copy the built binary to a file named "tigo" for packaging
+          cp "tigo-${VERSION}-linux-${GOARCH}" tigo
+
+          # Strip leading 'v' from version for package naming
+          VLESS_VERSION="${VERSION#v}"
+
+          nfpm package --packager deb --target "tigo-${VERSION}-linux-${GOARCH}.deb"
+          nfpm package --packager rpm --target "tigo-${VERSION}-linux-${GOARCH}.rpm"
+
       - uses: actions/upload-artifact@v4
         with:
           name: tigo-${{ matrix.os }}-${{ matrix.arch }}

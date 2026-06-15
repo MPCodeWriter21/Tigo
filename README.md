@@ -29,7 +29,7 @@ Installation
 
 ### Download from GitHub Releases
 
-Pre-built binaries are available for download from the
+Pre-built binaries and packages are available for download from the
 [releases page](https://github.com/MPCodeWriter21/Tigo/releases).
 Supported platforms:
 
