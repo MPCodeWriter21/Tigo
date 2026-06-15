@@ -150,6 +150,54 @@ func _taskDescriptionEditor(v *gocui.View, key gocui.Key, ch rune, mod gocui.Mod
 	checkTrigger(v)
 }
 
+func _taskPriorityEditor(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
+	if ch >= '0' && ch <= '9' && mod == 0 {
+		v.EditWrite(ch)
+		return
+	}
+	_, cy := v.Cursor()
+
+	switch key {
+	case gocui.KeyBackspace, gocui.KeyBackspace2:
+		v.EditDelete(true)
+	case gocui.KeyDelete:
+		v.EditDelete(false)
+	case gocui.KeyInsert:
+		v.Overwrite = !v.Overwrite
+	case gocui.KeyArrowDown:
+		v.MoveCursor(0, 1)
+	case gocui.KeyArrowUp:
+		v.MoveCursor(0, -1)
+	case gocui.KeyArrowLeft:
+		v.MoveCursor(-1, 0)
+	case gocui.KeyArrowRight:
+		v.MoveCursor(1, 0)
+	case gocui.KeyHome:
+		// Go to the first non-space character in the line
+		line, _ := v.Line(cy)
+		firstNonSpaceIndex := max(strings.IndexFunc(line, func(r rune) bool {
+			return r != ' '
+		}), 0)
+		v.SetCursor(firstNonSpaceIndex, cy)
+	case gocui.KeyEnd:
+		// Go to the last non-space character in the line
+		line, _ := v.Line(cy)
+		lastNonSpaceIndex := strings.LastIndexFunc(line, func(r rune) bool {
+			return r != ' '
+		})
+		if lastNonSpaceIndex == -1 {
+			lastNonSpaceIndex = len(line) - 1
+		}
+		v.SetCursor(lastNonSpaceIndex+1, cy)
+	case gocui.KeyTab:
+		setCurrentViewCallback("taskDialogDueDate")(ac.g, v)
+		return
+	case gocui.KeyEsc:
+		closePromptTaskDialog(ac.g, v)
+		return
+	}
+}
+
 func _promptTask(
 	g *gocui.Gui,
 	successCallback func(title string, priority int, tags []string, dueDate string, description string) error,
@@ -208,48 +256,25 @@ func _promptTask(
 			return err
 		}
 		v.Title = "Priority"
-		v.Editable = false
+		v.Editable = true
+		v.Editor = gocui.EditorFunc(_taskPriorityEditor)
 		v.Wrap = false
 
 		priority := strconv.Itoa(priority)
-		printPriority := func() error {
-			v.Clear()
-			padding, err := centeredFprintf(v, "%s", priority)
-			if err != nil {
-				return err
-			}
-			return v.SetCursor(padding+len(priority), 0)
+		v.Clear()
+		padding, err := centeredFprintf(v, "%s", priority)
+		if err != nil {
+			return err
 		}
-
-		if err := printPriority(); err != nil {
+		err = v.SetCursor(padding+len(priority), 0)
+		if err != nil {
 			return err
 		}
 
 		g.SetKeybinding("taskDialogPriority", gocui.KeyEnter, gocui.ModNone, _submitPromptTaskCallback(successCallback))
-		g.SetKeybinding("taskDialogPriority", gocui.KeyEsc, gocui.ModNone, closePromptTaskDialog)
-		g.SetKeybinding("taskDialogPriority", gocui.KeyTab, gocui.ModNone, setCurrentViewCallback("taskDialogDueDate"))
 		g.SetKeybinding("taskDialogPriority", gocui.KeyCtrlJ, gocui.ModNone, setCurrentViewCallback("taskDialogDueDate"))
 		// TODO: Add support for Ctrl+H (Stupidly enough, it overlaps with backspace and I couldn't find a way to distinguish between them)
 
-		// Set keybinds for 0-9 and backspace to modify the priority
-		for i := '0'; i <= '9'; i++ {
-			digit := rune(i)
-			g.SetKeybinding("taskDialogPriority", digit, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-				if len(priority) < 10 {
-					priority += string(digit)
-					for len(priority) > 1 && priority[0] == '0' {
-						priority = priority[1:]
-					}
-				}
-				return printPriority()
-			})
-		}
-		g.SetKeybinding("taskDialogPriority", gocui.KeyBackspace, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-			if len(priority) > 0 {
-				priority = priority[:len(priority)-1]
-			}
-			return printPriority()
-		})
 		// Make sure global keybindings don't interfere when priority view is focused
 		g.SetKeybinding("taskDialogPriority", '/', gocui.ModNone, doNothing)
 		g.SetKeybinding("taskDialogPriority", 'o', gocui.ModNone, doNothing)
