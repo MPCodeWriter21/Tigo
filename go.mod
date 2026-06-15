@@ -1,4 +1,4 @@
-module tigo
+module github.com/MPCodeWriter21/Tigo
 
 go 1.26.0
 

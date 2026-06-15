@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"tigo/pkg/logs"
-	"tigo/pkg/utils"
 
 	"github.com/awesome-gocui/gocui"
+
+	"github.com/MPCodeWriter21/Tigo/pkg/logs"
+	"github.com/MPCodeWriter21/Tigo/pkg/utils"
 )
 
 type keybinding struct {

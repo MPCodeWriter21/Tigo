@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"tigo/pkg/logs"
+	"github.com/MPCodeWriter21/Tigo/pkg/logs"
 )
 
 // setupTestRepo creates a temporary directory initialised as a git repo

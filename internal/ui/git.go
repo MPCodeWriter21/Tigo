@@ -7,12 +7,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"tigo/pkg/utils"
-	"tigo/pkg/git"
-	"tigo/pkg/logs"
-	"tigo/pkg/task"
-
 	"github.com/awesome-gocui/gocui"
+
+	"github.com/MPCodeWriter21/Tigo/pkg/git"
+	"github.com/MPCodeWriter21/Tigo/pkg/logs"
+	"github.com/MPCodeWriter21/Tigo/pkg/task"
+	"github.com/MPCodeWriter21/Tigo/pkg/utils"
 )
 
 const (

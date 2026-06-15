@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"tigo/pkg/utils"
+	"github.com/MPCodeWriter21/Tigo/pkg/utils"
 )
 
 type Task struct {

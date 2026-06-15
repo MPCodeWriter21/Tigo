@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"tigo/internal/config"
-	"tigo/internal/ui"
-	"tigo/pkg/db"
+	"github.com/MPCodeWriter21/Tigo/internal/config"
+	"github.com/MPCodeWriter21/Tigo/internal/ui"
+	"github.com/MPCodeWriter21/Tigo/pkg/db"
 )
 
 // The value of `version` is supposed to be set using `-ldflags` during build time. If not set, it defaults to "dev".

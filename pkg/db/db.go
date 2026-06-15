@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"tigo/pkg/git"
-	"tigo/pkg/logs"
-	"tigo/pkg/task"
 	"time"
+
+	"github.com/MPCodeWriter21/Tigo/pkg/git"
+	"github.com/MPCodeWriter21/Tigo/pkg/logs"
+	"github.com/MPCodeWriter21/Tigo/pkg/task"
 )
 
 func ResolveDefaultRoot() (string, error) {

@@ -5,9 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"tigo/pkg/utils"
 
 	"github.com/awesome-gocui/gocui"
+
+	"github.com/MPCodeWriter21/Tigo/pkg/utils"
 )
 
 type acType int
@@ -157,7 +158,7 @@ func showFilePathComplete(viewName string, startCol int, trigger, prefix string)
 		if entry.IsDir() {
 			name += "/"
 		}
-		if prefix == ac.searchDir + name {
+		if prefix == ac.searchDir+name {
 			continue
 		}
 		if filterLower == "" || strings.HasPrefix(strings.ToLower(name), filterLower) {

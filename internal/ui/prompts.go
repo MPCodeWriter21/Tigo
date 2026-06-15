@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"tigo/pkg/db"
-	"tigo/pkg/task"
-	"tigo/pkg/utils"
-
 	"github.com/awesome-gocui/gocui"
+
+	"github.com/MPCodeWriter21/Tigo/pkg/db"
+	"github.com/MPCodeWriter21/Tigo/pkg/task"
+	"github.com/MPCodeWriter21/Tigo/pkg/utils"
 )
 
 var (

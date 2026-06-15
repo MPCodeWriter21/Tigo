@@ -45,9 +45,15 @@ Supported platforms:
 Download the binary for your platform, rename it to `tigo`, place it somewhere
 in your `PATH`, and use it wherever you want.
 
-### Build from Source
+### Install via `go install`
 
-Ensure you have [Go](https://go.dev/) installed.
+If you have [Go](https://go.dev/) installed:
+
+```bash
+go install github.com/MPCodeWriter21/Tigo/cmd/tigo@latest
+```
+
+### Build from Source
 
 ```bash
 git clone https://github.com/MPCodeWriter21/Tigo.git

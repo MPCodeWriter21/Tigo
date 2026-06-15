@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"tigo/pkg/logs"
+	"github.com/MPCodeWriter21/Tigo/pkg/logs"
 )
 
 // HasGit returns true if git is installed on the machine

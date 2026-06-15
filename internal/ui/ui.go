@@ -9,14 +9,14 @@ import (
 	"sort"
 	"strings"
 
-	"tigo/internal/config"
-	"tigo/pkg/db"
-	"tigo/pkg/logs"
-	"tigo/pkg/task"
-	"tigo/pkg/utils"
-
 	"github.com/atotto/clipboard"
 	"github.com/awesome-gocui/gocui"
+
+	"github.com/MPCodeWriter21/Tigo/internal/config"
+	"github.com/MPCodeWriter21/Tigo/pkg/db"
+	"github.com/MPCodeWriter21/Tigo/pkg/logs"
+	"github.com/MPCodeWriter21/Tigo/pkg/task"
+	"github.com/MPCodeWriter21/Tigo/pkg/utils"
 )
 
 var (
