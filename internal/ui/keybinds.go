@@ -66,7 +66,7 @@ var bindings []keybinding = []keybinding{
 	{[]string{"logs", "help"}, []any{gocui.KeyArrowUp, 'k'}, gocui.ModNone, cursorUp, "Scroll up", true},
 	{[]string{"logs"}, []any{'g'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return v.SetCursor(0, 0) }, "Scroll to the top", true},
 	{[]string{"logs"}, []any{'G'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { h := v.LinesHeight(); return v.SetCursor(1, h-2) }, "Scroll to the bottom", true},
-	{[]string{"logs"}, []any{'C'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { logs.Clear(); return nil }, "Clear all log entries", true},
+	{[]string{"logs"}, []any{gocui.KeyCtrlL}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { logs.Clear(); return nil }, "Clear all log entries", true},
 
 	{[]string{"deleteDialog"}, []any{gocui.KeyEnter}, gocui.ModNone, submitDeleteTask, "Confirm deleting the selected task", true},
 	{[]string{"deleteDialog"}, []any{gocui.KeyEsc}, gocui.ModNone, deleteViewDefault, "Cancel deleting the selected task", true},
@@ -250,6 +250,8 @@ func keyToString(key any, mod gocui.Modifier) string {
 			text += "<space>"
 		case gocui.KeyCtrlC:
 			text += "<ctrl+c>"
+		case gocui.KeyCtrlL:
+			text += "<ctrl+l>"
 		default:
 			text += fmt.Sprintf("%v", key)
 		}
