@@ -103,7 +103,7 @@ jobs:
           nfpm package --packager deb --target "tigo-${VERSION}-linux-${GOARCH}.deb"
           nfpm package --packager rpm --target "tigo-${VERSION}-linux-${GOARCH}.rpm"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: tigo-${{ matrix.os }}-${{ matrix.arch }}
           path: tigo-*
@@ -115,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: tigo-*
           path: release-artifacts
@@ -134,7 +134,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.version || github.ref_name }}
           name: Tigo ${{ inputs.version || github.ref_name }}
