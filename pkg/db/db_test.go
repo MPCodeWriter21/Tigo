@@ -486,9 +486,15 @@ func TestResolveRoot_FallbackToDefaultRoot(t *testing.T) {
 }
 
 func TestInit_DefaultRoot(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	root, err := ResolveDefaultRoot()
 	if err != nil {
 		t.Skip("ResolveDefaultRoot failed:", err)
+	}
+	if !strings.HasPrefix(root, home) {
+		t.Fatalf("Resolved default root must be in mock home directory. Home: %q Root: %q", home, root)
 	}
 	os.RemoveAll(root)
 	t.Cleanup(func() { os.RemoveAll(root) })
