@@ -381,6 +381,7 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 				tags = append(tags, tag)
 			}
 		}
+		tags = utils.SortTags(tags, cfg.TagSortOrder)
 		description := strings.TrimSpace(descriptionView.Buffer())
 
 		if err := successCallback(title, priority, tags, dueDate, description); err != nil {

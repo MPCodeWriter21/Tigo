@@ -55,6 +55,7 @@ func main() {
 		fmt.Println("frame_style: round       # The style of the frames (round, double, single)")
 		fmt.Println("show_closed: false       # Whether to show closed tasks in the list by default")
 		fmt.Println("due_color_enabled: true  # Whether to color the due date based on how close it is")
+		fmt.Println("tag_sort_order: none     # Sort tags: none, alphabetical, reverse-alphabetical, length, reverse-length")
 		os.Exit(0)
 	}
 

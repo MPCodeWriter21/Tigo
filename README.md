@@ -22,7 +22,7 @@ Features
   by tag by clicking on tag hyperlinks.
 - **Clipboard**: Yank individual detail fields or entire lines to the clipboard.
 - **Configurable**: YAML config with per-directory overrides for sort order,
-  default priority, frame style, and showing closed tasks.
+  default priority, frame style, showing closed tasks, and tag sorting.
 
 Installation
 ------------
@@ -148,6 +148,7 @@ default_priority: 50     # The default priority for new tasks
 frame_style: round       # The style of the frames (round, double, single)
 show_closed: false       # Whether to show closed tasks in the list by default
 due_color_enabled: true  # Whether to color the due date based on how close it is
+tag_sort_order: none     # Sort tags: none, alphabetical, reverse-alphabetical, length, reverse-length
 ```
 
 Git Integration

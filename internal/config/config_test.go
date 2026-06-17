@@ -24,6 +24,9 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.DueColorEnabled != true {
 		t.Errorf("DueColorEnabled = %t; want true", cfg.DueColorEnabled)
 	}
+	if cfg.TagSortOrder != "none" {
+		t.Errorf("TagSortOrder = %q; want %q", cfg.TagSortOrder, "none")
+	}
 }
 
 func TestLoadConfigFromPath(t *testing.T) {
@@ -45,6 +48,7 @@ frame_style: single`,
 				ShowClosed:      true,
 				FrameStyle:      "single",
 				DueColorEnabled: true,
+				TagSortOrder:    "none",
 			},
 		},
 		{
@@ -56,6 +60,7 @@ frame_style: single`,
 				ShowClosed:      false,
 				FrameStyle:      "round",
 				DueColorEnabled: true,
+				TagSortOrder:    "none",
 			},
 		},
 		{
@@ -82,6 +87,35 @@ frame_style: single`,
 			name:    "invalid frame_style",
 			yaml:    `frame_style: fancy`,
 			wantErr: true,
+		},
+		{
+			name:    "invalid tag_sort_order",
+			yaml:    `tag_sort_order: invalid`,
+			wantErr: true,
+		},
+		{
+			name: "valid tag_sort_order alphabetical",
+			yaml: `tag_sort_order: alphabetical`,
+			want: &TigoConfig{
+				DefaultPriority: 50,
+				SortBy:          "id",
+				ShowClosed:      false,
+				FrameStyle:      "round",
+				DueColorEnabled: true,
+				TagSortOrder:    "alphabetical",
+			},
+		},
+		{
+			name: "valid tag_sort_order reverse-length",
+			yaml: `tag_sort_order: reverse-length`,
+			want: &TigoConfig{
+				DefaultPriority: 50,
+				SortBy:          "id",
+				ShowClosed:      false,
+				FrameStyle:      "round",
+				DueColorEnabled: true,
+				TagSortOrder:    "reverse-length",
+			},
 		},
 	}
 
@@ -117,6 +151,9 @@ frame_style: single`,
 			}
 			if cfg.DueColorEnabled != tt.want.DueColorEnabled {
 				t.Errorf("(%s): DueColorEnabled = %t; want %t", tt.name, cfg.DueColorEnabled, tt.want.DueColorEnabled)
+			}
+			if cfg.TagSortOrder != tt.want.TagSortOrder {
+				t.Errorf("(%s): TagSortOrder = %q; want %q", tt.name, cfg.TagSortOrder, tt.want.TagSortOrder)
 			}
 		})
 	}
@@ -261,6 +298,7 @@ show_closed: true`), 0644)
 		ShowClosed:      true,       // from local
 		FrameStyle:      "double",   // from user (still inherited because local doesn't set it)
 		DueColorEnabled: true,       // default
+		TagSortOrder:    "none",     // default
 	}
 
 	if cfg.DefaultPriority != want.DefaultPriority {

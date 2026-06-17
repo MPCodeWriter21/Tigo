@@ -16,6 +16,7 @@ type TigoConfig struct {
 	ShowClosed      bool   `yaml:"show_closed"`       // true or false
 	FrameStyle      string `yaml:"frame_style"`       // round, double, single
 	DueColorEnabled bool   `yaml:"due_color_enabled"` // true or false (default true)
+	TagSortOrder    string `yaml:"tag_sort_order"`    // none, alphabetical, reverse-alphabetical, length, reverse-length
 }
 
 // DefaultConfig returns a TigoConfig struct with default values for the Tigo application.
@@ -26,6 +27,7 @@ func DefaultConfig() *TigoConfig {
 		ShowClosed:      false,
 		FrameStyle:      "round",
 		DueColorEnabled: true,
+		TagSortOrder:    "none",
 	}
 }
 
@@ -70,6 +72,9 @@ func LoadConfigFromPath(configPath string, cfg *TigoConfig) error {
 	}
 	if cfg.FrameStyle != "round" && cfg.FrameStyle != "double" && cfg.FrameStyle != "single" {
 		return errors.New("frame_style must be one of: round, double, single")
+	}
+	if cfg.TagSortOrder != "none" && cfg.TagSortOrder != "alphabetical" && cfg.TagSortOrder != "reverse-alphabetical" && cfg.TagSortOrder != "length" && cfg.TagSortOrder != "reverse-length" {
+		return errors.New("tag_sort_order must be one of: none, alphabetical, reverse-alphabetical, length, reverse-length")
 	}
 
 	return nil

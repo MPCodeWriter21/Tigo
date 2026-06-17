@@ -307,3 +307,35 @@ func SortedKeysByValue(m map[string]int) []string {
 	})
 	return keys
 }
+
+// SortTags sorts the given tags slice according to the specified sort order.
+// Supported sort orders:
+//
+//	"none"                 - no sorting (original order preserved)
+//	"alphabetical"         - sort A-Z
+//	"reverse-alphabetical" - sort Z-A
+//	"length"               - sort by length (shortest first)
+//	"reverse-length"       - sort by length (longest first)
+func SortTags(tags []string, sortOrder string) []string {
+	switch sortOrder {
+	case "alphabetical":
+		sort.Strings(tags)
+	case "reverse-alphabetical":
+		sort.Sort(sort.Reverse(sort.StringSlice(tags)))
+	case "length":
+		sort.Slice(tags, func(i, j int) bool {
+			if len(tags[i]) == len(tags[j]) {
+				return tags[i] < tags[j]
+			}
+			return len(tags[i]) < len(tags[j])
+		})
+	case "reverse-length":
+		sort.Slice(tags, func(i, j int) bool {
+			if len(tags[i]) == len(tags[j]) {
+				return tags[i] > tags[j]
+			}
+			return len(tags[i]) > len(tags[j])
+		})
+	}
+	return tags
+}

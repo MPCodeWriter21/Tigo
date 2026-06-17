@@ -681,6 +681,94 @@ func TestOpenInEditor_WithEDITOR(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// SortTags
+// ---------------------------------------------------------------------------
+
+func TestSortTags_None(t *testing.T) {
+	tags := []string{"zeta", "alpha", "beta"}
+	got := SortTags(tags, "none")
+	want := []string{"zeta", "alpha", "beta"}
+	if !equalSlices(got, want) {
+		t.Errorf("SortTags(none) = %v, want %v", got, want)
+	}
+}
+
+func TestSortTags_Alphabetical(t *testing.T) {
+	tags := []string{"zeta", "alpha", "beta"}
+	got := SortTags(tags, "alphabetical")
+	want := []string{"alpha", "beta", "zeta"}
+	if !equalSlices(got, want) {
+		t.Errorf("SortTags(alphabetical) = %v, want %v", got, want)
+	}
+}
+
+func TestSortTags_ReverseAlphabetical(t *testing.T) {
+	tags := []string{"alpha", "zeta", "beta"}
+	got := SortTags(tags, "reverse-alphabetical")
+	want := []string{"zeta", "beta", "alpha"}
+	if !equalSlices(got, want) {
+		t.Errorf("SortTags(reverse-alphabetical) = %v, want %v", got, want)
+	}
+}
+
+func TestSortTags_Length(t *testing.T) {
+	tags := []string{"longest", "short", "medium"}
+	got := SortTags(tags, "length")
+	// shortest first: "short"(5), "medium"(6), "longest"(7)
+	want := []string{"short", "medium", "longest"}
+	if !equalSlices(got, want) {
+		t.Errorf("SortTags(length) = %v, want %v", got, want)
+	}
+}
+
+func TestSortTags_ReverseLength(t *testing.T) {
+	tags := []string{"short", "longest", "medium"}
+	got := SortTags(tags, "reverse-length")
+	// longest first: "longest"(7), "medium"(6), "short"(5)
+	want := []string{"longest", "medium", "short"}
+	if !equalSlices(got, want) {
+		t.Errorf("SortTags(reverse-length) = %v, want %v", got, want)
+	}
+}
+
+func TestSortTags_LengthTie(t *testing.T) {
+	tags := []string{"cc", "aa", "bb"}
+	got := SortTags(tags, "length")
+	// same length -> alphabetical: "aa", "bb", "cc"
+	want := []string{"aa", "bb", "cc"}
+	if !equalSlices(got, want) {
+		t.Errorf("SortTags(length tie) = %v, want %v", got, want)
+	}
+}
+
+func TestSortTags_ReverseLengthTie(t *testing.T) {
+	tags := []string{"aa", "cc", "bb"}
+	got := SortTags(tags, "reverse-length")
+	// same length -> reverse alphabetical: "cc", "bb", "aa"
+	want := []string{"cc", "bb", "aa"}
+	if !equalSlices(got, want) {
+		t.Errorf("SortTags(reverse-length tie) = %v, want %v", got, want)
+	}
+}
+
+func TestSortTags_Empty(t *testing.T) {
+	tags := []string{}
+	got := SortTags(tags, "alphabetical")
+	if len(got) != 0 {
+		t.Errorf("SortTags(empty) = %v, want empty", got)
+	}
+}
+
+func TestSortTags_UnknownOrder(t *testing.T) {
+	tags := []string{"b", "a"}
+	got := SortTags(tags, "unknown")
+	want := []string{"b", "a"}
+	if !equalSlices(got, want) {
+		t.Errorf("SortTags(unknown) = %v, want %v", got, want)
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
