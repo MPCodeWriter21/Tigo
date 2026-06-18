@@ -77,27 +77,6 @@ nfpms:
       group: Applications/System
       summary: Terminal-based TODO/task management program
 
-chocolateys:
-  - name: tigo
-    owners: Mehrad Pooryoussof
-    authors: Mehrad Pooryoussof
-    project_url: https://github.com/MPCodeWriter21/Tigo
-    copyright: 2026 Mehrad Pooryoussof
-    license_url: https://github.com/MPCodeWriter21/Tigo/blob/main/LICENSE
-    require_license_acceptance: false
-    project_source_url: https://github.com/MPCodeWriter21/Tigo
-    docs_url: https://github.com/MPCodeWriter21/Tigo/blob/main/README.md
-    bug_tracker_url: https://github.com/MPCodeWriter21/Tigo/issues
-    tags: "tigo tui todo task-manager terminal"
-    summary: Terminal-based TODO/task management program
-    description: |
-      Tigo is a TUI TODO/task management program that stores tasks
-      as TASK.md files in timestamped directories, making them grep-able,
-      diff-able, and git-friendly.
-    api_key: "{{ .Env.CHOCOLATEY_API_KEY }}"
-    source_repo: "https://push.chocolatey.org/"
-    skip_publish: false
-
 checksum:
   name_template: checksums.txt
   algorithm: sha256
