@@ -96,7 +96,7 @@ chocolateys:
       diff-able, and git-friendly.
     api_key: "{{ .Env.CHOCOLATEY_API_KEY }}"
     source_repo: "https://push.chocolatey.org/"
-    skip_publish: true
+    skip_publish: false
 
 checksum:
   name_template: checksums.txt

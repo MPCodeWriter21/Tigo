@@ -47,15 +47,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push to Chocolatey
-        shell: pwsh
-        run: |
-          $nupkg = Get-ChildItem -Path "${{ github.workspace }}\dist\*.nupkg" | Select-Object -First 1
-          if (-not $nupkg) {
-            Write-Error "No .nupkg found in dist/"
-            exit 1
-          }
-          choco push $nupkg.FullName --key $env:CHOCOLATEY_API_KEY --source https://push.chocolatey.org/
-        env:
           CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
