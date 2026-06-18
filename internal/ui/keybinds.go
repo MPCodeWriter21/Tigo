@@ -89,7 +89,7 @@ var bindings []keybinding = []keybinding{
 	{[]string{"commitFiles"}, []any{gocui.KeyEnter}, gocui.ModNone, submitCommit, "Submit the commit message", true},
 	{[]string{"commitSubject"}, []any{gocui.KeyTab}, gocui.ModNone, setCurrentViewCallback("commitBody"), "Switch to the commit description field", true},
 	{[]string{"commitBody"}, []any{gocui.KeyTab}, gocui.ModNone, setCurrentViewCallbackCursor("commitFiles", false), "Switch to the file list", true},
-	{[]string{"commitFiles"}, []any{gocui.KeyTab}, gocui.ModNone, setCurrentViewCallbackCursor("commitSubject", false), "Switch to the commit message field", true},
+	{[]string{"commitFiles"}, []any{gocui.KeyTab}, gocui.ModNone, setCurrentViewCallbackCursor("commitSubject", true), "Switch to the commit message field", true},
 	{[]string{"commitFiles"}, []any{'j', gocui.KeyArrowDown}, gocui.ModNone, cursorDown, "Scroll down", true},
 	{[]string{"commitFiles"}, []any{'k', gocui.KeyArrowUp}, gocui.ModNone, cursorUp, "Scroll up", true},
 	{[]string{"commitFiles"}, []any{'g'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return v.SetCursor(0, 0) }, "Scroll to the top", true},
