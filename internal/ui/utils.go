@@ -322,7 +322,7 @@ func openConfigFile(g *gocui.Gui, _ *gocui.View) error {
 	defer gocui.Resume()
 
 	configFilePath := filepath.Join(tigoRoot, "config.yaml")
-	err := utils.OpenInEditor(configFilePath)
+	err := utils.OpenInEditor(configFilePath, tigoRoot)
 	if err != nil {
 		return err
 	}

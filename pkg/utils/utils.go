@@ -215,23 +215,23 @@ func OpenFile(path string) error {
 //
 //	gocui.Suspend()
 //	defer gocui.Resume()
-func OpenInEditor(filePath string) error {
+func OpenInEditor(filePath, runDirectory string) error {
 	// 1. Check environment variables
 	if editor := os.Getenv("VISUAL"); editor != "" {
-		return RunEditor(editor, filePath)
+		return RunEditor(editor, filePath, runDirectory)
 	}
 	if editor := os.Getenv("EDITOR"); editor != "" {
-		return RunEditor(editor, filePath)
+		return RunEditor(editor, filePath, runDirectory)
 	}
 
 	switch runtime.GOOS {
 	case "linux", "freebsd", "openbsd", "netbsd", "dragonfly":
 		// 2. Try Debian/Ubuntu alternatives
 		if editor, err := exec.LookPath("sensible-editor"); err == nil {
-			return RunEditor(editor, filePath)
+			return RunEditor(editor, filePath, runDirectory)
 		}
 		if editor, err := exec.LookPath("editor"); err == nil {
-			return RunEditor(editor, filePath)
+			return RunEditor(editor, filePath, runDirectory)
 		}
 
 		// 3. Search common editors
@@ -239,7 +239,7 @@ func OpenInEditor(filePath string) error {
 			"vim", "vi", "nano", "emacs", "micro", "helix", "code", "gedit", "kate",
 		} {
 			if path, err := exec.LookPath(ed); err == nil {
-				return RunEditor(path, filePath)
+				return RunEditor(path, filePath, runDirectory)
 			}
 		}
 		return fmt.Errorf("no text editor found; set $VISUAL or $EDITOR")
@@ -259,11 +259,12 @@ func OpenInEditor(filePath string) error {
 
 // RunEditor starts an editor with arguments; if the editor supports
 // multiple files you might need to split the `editor` variable smartly.
-func RunEditor(editor, filePath string) error {
+func RunEditor(editor, filePath, runDirectory string) error {
 	// Handle editors defined with arguments, e.g. "code --wait".
 	parts := strings.Fields(editor)
 	args := append(parts[1:], filePath)
 	cmd := exec.Command(parts[0], args...)
+	cmd.Dir = runDirectory
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

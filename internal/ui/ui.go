@@ -902,7 +902,7 @@ func openSelectedTaskFile(g *gocui.Gui, v *gocui.View) error {
 
 	currentTask := tasks[selectedTask]
 	taskFile := filepath.Join(tigoRoot, currentTask.ID, "TASK.md")
-	err := utils.OpenInEditor(taskFile)
+	err := utils.OpenInEditor(taskFile, tigoRoot)
 	if err != nil {
 		return err
 	}

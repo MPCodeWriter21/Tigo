@@ -608,14 +608,14 @@ func TestOpenFile_NonExistent(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestRunEditor_SplitArgs(t *testing.T) {
-	err := RunEditor("nonexistent-editor", "/tmp/test.txt")
+	err := RunEditor("nonexistent-editor", "/tmp/test.txt", "/tmp")
 	if err == nil {
 		t.Skip("RunEditor unexpectedly succeeded (maybe nonexistent-editor exists?)")
 	}
 }
 
 func TestRunEditor_EditorWithArgs(t *testing.T) {
-	err := RunEditor("nonexistent --wait", "/tmp/test.txt")
+	err := RunEditor("nonexistent --wait", "/tmp/test.txt", "/tmp")
 	if err == nil {
 		t.Skip("RunEditor unexpectedly succeeded")
 	}
@@ -634,7 +634,7 @@ func TestRunEditor_WithEcho(t *testing.T) {
 	default:
 		editor = "cat"
 	}
-	err := RunEditor(editor, path)
+	err := RunEditor(editor, path, filepath.Dir(path))
 	if err != nil {
 		// May fail on headless systems; that's okay
 		t.Logf("RunEditor returned: %v", err)
@@ -655,7 +655,7 @@ func TestOpenInEditor_WithVISUAL(t *testing.T) {
 		t.Setenv("VISUAL", "cat")
 	}
 
-	err := OpenInEditor(path)
+	err := OpenInEditor(path, filepath.Dir(path))
 	if err != nil {
 		t.Logf("OpenInEditor returned: %v", err)
 	}
@@ -674,7 +674,7 @@ func TestOpenInEditor_WithEDITOR(t *testing.T) {
 		t.Setenv("EDITOR", "cat")
 	}
 
-	err := OpenInEditor(path)
+	err := OpenInEditor(path, filepath.Dir(path))
 	if err != nil {
 		t.Logf("OpenInEditor returned: %v", err)
 	}
