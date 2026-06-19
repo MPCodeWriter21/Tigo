@@ -573,7 +573,7 @@ func updateViews(g *gocui.Gui) error {
 	}
 	statusText := fmt.Sprintf(
 		"%s ?: Help | e: Edit | d: Delete %s| H: %s CLOSED | /: Search | c: Commit | \u2193/\u2191 j/k: Navigate | g/G: Top/Bottom",
-		gitStatusString(), spaceKeyText, hKeyText)
+		gitStatusString(g), spaceKeyText, hKeyText)
 	if statusText != statusBarView.Buffer() {
 		statusBarView.Clear()
 		fmt.Fprint(statusBarView, statusText)

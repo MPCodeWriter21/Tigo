@@ -152,17 +152,30 @@ func updateGitState() {
 	}
 }
 
-func gitStatusString() string {
+func gitStatusString(g *gocui.Gui) string {
 	if !gitRepo {
 		return ""
 	}
 	var sb strings.Builder
 
 	switch op := gitOpInProgress.Load(); op {
-	case gitOpPull:
-		sb.WriteString("\x1b[35mpull")
-	case gitOpPush:
-		sb.WriteString("\x1b[35mpush")
+	case gitOpPull, gitOpPush:
+		sb.WriteString("\x1b[35m")
+		if op == gitOpPull {
+			sb.WriteString("pull ")
+		} else {
+			sb.WriteString("push ")
+		}
+		// Show a spinner while the operation is in progress
+		spinner := []string{"|", "/", "-", "\\"}
+		spinIndex := int(time.Now().UnixNano()/1e8) % len(spinner)
+		sb.WriteString(spinner[spinIndex%len(spinner)])
+		sb.WriteString("\x1b[39m")
+		// Schedule a view update to refresh the spinner after a short delay
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			g.Update(updateViews)
+		}()
 	default:
 		if gitBehind > 0 || gitAhead > 0 {
 			sb.WriteString("\x1b[33m")
