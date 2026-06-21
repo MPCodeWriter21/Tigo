@@ -409,6 +409,8 @@ func resizeDialogs(g *gocui.Gui, maxX, maxY int) error {
 	return nil
 }
 
+var oldLog string = ""
+
 func updateViews(g *gocui.Gui) error {
 	tasksView, err := g.View("tasks")
 	if err != nil {
@@ -473,6 +475,7 @@ func updateViews(g *gocui.Gui) error {
 		cy = new(int)
 	)
 	*cx, *cy = detailsView.Cursor()
+	_, oy = detailsView.Origin()
 	detailsView.Clear()
 	if len(tasks) > 0 && selectedTask >= 0 && selectedTask < len(tasks) {
 		detailsView.FgColor = gocui.ColorWhite
@@ -507,6 +510,23 @@ func updateViews(g *gocui.Gui) error {
 		detailsView.FgColor = gocui.ColorRed
 		fmt.Fprintln(detailsView, "No task selected.")
 	}
+	detailsWidth, detailsHeight := detailsView.Size()
+
+	contentLines := detailsView.BufferLines()[0 : *cy+1]
+	content := strings.Join(contentLines, "\n")
+	linesCount := len(contentLines)
+	visualLinesCount := utils.CalcVisualLines(content, detailsWidth-2)
+	visualLineDifference := visualLinesCount - linesCount
+
+	if *cy+visualLineDifference < oy+2 {
+		oy = *cy + visualLineDifference - 2
+	}
+	if *cy+visualLineDifference > oy+detailsHeight-3 {
+		oy = *cy + visualLineDifference - detailsHeight + 3
+	}
+	oy = max(oy, 0)
+
+	detailsView.SetOrigin(0, oy)
 	detailsView.SetCursor(*cx, min(*cy, detailsView.LinesHeight()-2))
 
 	// logs view
