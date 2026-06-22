@@ -512,6 +512,7 @@ func updateViews(g *gocui.Gui) error {
 	}
 	detailsWidth, detailsHeight := detailsView.Size()
 
+	*cy = max(min(*cy, detailsView.LinesHeight()-2), 0)
 	contentLines := detailsView.BufferLines()[0 : *cy+1]
 	content := strings.Join(contentLines, "\n")
 	linesCount := len(contentLines)
@@ -527,7 +528,7 @@ func updateViews(g *gocui.Gui) error {
 	oy = max(oy, 0)
 
 	detailsView.SetOrigin(0, oy)
-	detailsView.SetCursor(*cx, min(*cy, detailsView.LinesHeight()-2))
+	detailsView.SetCursor(*cx, *cy)
 
 	// logs view
 	logsView, err := g.View("logs")
