@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/MPCodeWriter21/Tigo/master/schemas/config.schema.json",
+  "title": "TigoConfig",
+  "description": "Schema for Tigo configuration file",
+  "type": "object",
+  "properties": {
+    "default_priority": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 50,
+      "description": "The default priority for new tasks"
+    },
+    "sort_by": {
+      "type": "string",
+      "enum": ["id", "priority", "due-date", "title"],
+      "default": "id",
+      "description": "Sort tasks by id, priority, due-date, or title"
+    },
+    "show_closed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to show closed tasks in the list by default"
+    },
+    "frame_style": {
+      "type": "string",
+      "enum": ["round", "double", "single"],
+      "default": "round",
+      "description": "The style of the frames (round, double, single)"
+    },
+    "due_color_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to color the due date based on how close it is"
+    },
+    "tag_sort_order": {
+      "type": "string",
+      "enum": ["none", "alphabetical", "reverse-alphabetical", "length", "reverse-length"],
+      "default": "none",
+      "description": "Sort tags: none, alphabetical, reverse-alphabetical, length, reverse-length"
+    }
+  },
+  "additionalProperties": false
+}

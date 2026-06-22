@@ -48,6 +48,7 @@ func main() {
 	}
 
 	if *defaultConfigFlag {
+		fmt.Println("# yaml-language-server: $schema=https://raw.githubusercontent.com/MPCodeWriter21/Tigo/master/schemas/config.schema.json")
 		fmt.Println("# This is the default configuration for Tigo. You can copy this to your `config.yaml` and modify it as needed.")
 		fmt.Println()
 		fmt.Println("sort_by: id              # Sort tasks by id, priority, due-date, or title")
