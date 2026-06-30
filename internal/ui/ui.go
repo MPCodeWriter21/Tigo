@@ -5,15 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/atotto/clipboard"
 	"github.com/awesome-gocui/gocui"
 
 	"github.com/MPCodeWriter21/Tigo/internal/config"
-	"github.com/MPCodeWriter21/Tigo/pkg/db"
 	"github.com/MPCodeWriter21/Tigo/pkg/logs"
 	"github.com/MPCodeWriter21/Tigo/pkg/task"
 	"github.com/MPCodeWriter21/Tigo/pkg/utils"
@@ -112,106 +109,6 @@ func Run(root string, conf *config.TigoConfig) error {
 		return err
 	}
 
-	return nil
-}
-
-func loadTasks() error {
-	taskIDs, err := db.DiscoverTasks(tigoRoot)
-	if err != nil {
-		return err
-	}
-
-	tasks = make([]*task.Task, 0, len(taskIDs))
-	// Parse each task and filter based on search query and config settings
-	for _, id := range taskIDs {
-		t, err := task.Parse(id, filepath.Join(tigoRoot, id, "TASK.md"))
-		if err == nil {
-			// If the search query is a task id, show the task no matter what
-			if utils.IDRegEx.MatchString(searchQuery.value) {
-				idMatched, err := regexp.MatchString("(?i)"+searchQuery.value, t.ID)
-				if err == nil && idMatched {
-					tasks = append(tasks, t)
-					continue
-				}
-			}
-
-			if !cfg.ShowClosed && t.Status == "CLOSED" {
-				continue
-			}
-			if searchQuery.value != "" {
-				if searchQuery.type_ == tagQuery {
-					tagMatched := false
-					for _, tag := range t.Tags {
-						matched, err := regexp.MatchString("(?i)"+searchQuery.value, tag)
-						if err == nil && matched {
-							tagMatched = true
-							break
-						}
-					}
-					if !tagMatched {
-						continue
-					}
-				} else if searchQuery.type_ == normalQuery {
-					matched, err := regexp.MatchString("(?i)"+searchQuery.value, t.Title+t.Description+strings.Join(t.Tags, " "))
-					if err != nil || !matched {
-						continue
-					}
-				} else {
-					panic(fmt.Sprintf("invalid search query type: %v", searchQuery.type_))
-				}
-			}
-			tasks = append(tasks, t)
-		}
-	}
-
-	// Ranks tasks by due date, using parsed time when available.
-	// Falls back to ID comparison when both tasks lack a due date.
-	dueDateSorter := func(i, j int) bool {
-		a, b := tasks[i], tasks[j]
-		if a.DueDateTime == nil && b.DueDateTime == nil {
-			if a.DueDate == "" || b.DueDate == "" {
-				return a.ID < b.ID
-			}
-			return a.DueDate < b.DueDate
-		}
-		if a.DueDateTime == nil {
-			return false
-		}
-		if b.DueDateTime == nil {
-			return true
-		}
-		if !a.DueDateTime.Equal(*b.DueDateTime) {
-			return a.DueDateTime.Before(*b.DueDateTime)
-		}
-		return a.DueDate < b.DueDate
-	}
-
-	// Sort tasks based on the configured sort option
-	switch cfg.SortBy {
-	case "id":
-		sort.Slice(tasks, func(i, j int) bool {
-			return tasks[i].ID < tasks[j].ID
-		})
-	case "priority":
-		sort.Slice(tasks, func(i, j int) bool {
-			if tasks[i].Priority != tasks[j].Priority {
-				return tasks[i].Priority > tasks[j].Priority
-			}
-			// Fall back to due date sorting if priorities are equal
-			return dueDateSorter(i, j)
-		})
-	case "due-date":
-		sort.Slice(tasks, dueDateSorter)
-	case "title":
-		sort.Slice(tasks, func(i, j int) bool {
-			return tasks[i].Title < tasks[j].Title
-		})
-	default:
-		return fmt.Errorf("invalid sort option: %s", cfg.SortBy)
-	}
-
-	// Ensure selectedTask is within bounds after reloading tasks
-	selectedTask = max(min(selectedTask, len(tasks)-1), 0)
 	return nil
 }
 
@@ -408,8 +305,6 @@ func resizeDialogs(g *gocui.Gui, maxX, maxY int) error {
 
 	return nil
 }
-
-var oldLog string = ""
 
 func updateViews(g *gocui.Gui) error {
 	tasksView, err := g.View("tasks")
@@ -642,43 +537,13 @@ func tasksUp(g *gocui.Gui, v *gocui.View) error {
 
 func toggleShowClosed(g *gocui.Gui, v *gocui.View) error {
 	cfg.ShowClosed = !cfg.ShowClosed
-	if len(tasks) != 0 && selectedTask < len(tasks) && selectedTask >= 0 {
-		task := tasks[selectedTask]
-		if task.Status != "CLOSED" {
-			// Make sure the previously selected task is still selected after reloading tasks, if it still exists.
-			selectedID := task.ID
-			err := loadTasks()
-			if err != nil {
-				return err
-			}
-			for i, t := range tasks {
-				if t.ID == selectedID {
-					selectedTask = i
-					break
-				}
-			}
-			return nil
-		}
-	}
-	return loadTasks()
+	return reloadTasks(g, v)
 }
 
 func clearSearchQuery(g *gocui.Gui, v *gocui.View) error {
 	searchQuery.value = ""
 	g.DeleteView("search")
-	var selectedID string
-	if len(tasks) > 0 && selectedTask >= 0 && selectedTask < len(tasks) {
-		selectedID = tasks[selectedTask].ID
-	}
-	loadTasks()
-	// Make sure the previously selected task is still selected after reloading tasks
-	for i, t := range tasks {
-		if t.ID == selectedID {
-			selectedTask = i
-			break
-		}
-	}
-	return updateViews(g)
+	return reloadTasks(g, v)
 }
 
 func showDetails(g *gocui.Gui, v *gocui.View) error {
@@ -888,7 +753,7 @@ func followDetail(g *gocui.Gui, v *gocui.View) error {
 		searchView.Clear()
 		fmt.Fprint(searchView, tag)
 		g.SetCurrentView("tasks")
-		return loadTasks()
+		return reloadTasks(g, v)
 	case filePathDetail:
 		// The file path is relative to the current task's directory, so we need to get the current task's directory and join it with the file path.
 		currentTask := tasks[selectedTask]
@@ -927,19 +792,5 @@ func openSelectedTaskFile(g *gocui.Gui, v *gocui.View) error {
 	if err != nil {
 		return err
 	}
-	var selectedID string
-	if len(tasks) > 0 && selectedTask < len(tasks) {
-		selectedID = tasks[selectedTask].ID
-	}
-	if err := loadTasks(); err != nil {
-		return err
-	}
-	// Keep the same task selected after sorting (if it still exists)
-	for i, t := range tasks {
-		if t.ID == selectedID {
-			selectedTask = i
-			break
-		}
-	}
-	return updateViews(g)
+	return reloadTasks(g, v)
 }

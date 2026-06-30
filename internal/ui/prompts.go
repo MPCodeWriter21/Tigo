@@ -397,23 +397,7 @@ func _submitPromptTaskCallback(successCallback func(title string, priority int, 
 			return err
 		}
 
-		var selectedID string
-		if len(tasks) > 0 && selectedTask < len(tasks) {
-			selectedID = tasks[selectedTask].ID
-		}
-		// Reload
-		if err := loadTasks(); err != nil {
-			return err
-		}
-		// Keep the same task selected after sorting (if it still exists)
-		for i, t := range tasks {
-			if t.ID == selectedID {
-				selectedTask = i
-				break
-			}
-		}
-
-		return updateViews(g)
+		return reloadTasks(g, v)
 	}
 }
 
@@ -515,7 +499,7 @@ func searchClose(g *gocui.Gui, v *gocui.View) error {
 	if _, err := g.SetCurrentView("tasks"); err != nil {
 		return err
 	}
-	return loadTasks()
+	return reloadTasks(g, v)
 }
 
 func submitSearch(g *gocui.Gui, v *gocui.View) error {
@@ -532,21 +516,7 @@ func submitSearch(g *gocui.Gui, v *gocui.View) error {
 	if _, err := g.SetCurrentView("tasks"); err != nil {
 		return err
 	}
-	var selectedID string
-	if len(tasks) > 0 && selectedTask < len(tasks) {
-		selectedID = tasks[selectedTask].ID
-	}
-	if err := loadTasks(); err != nil {
-		return err
-	}
-	// Try to keep the same task selected after searching (if it still exists)
-	for i, t := range tasks {
-		if t.ID == selectedID {
-			selectedTask = i
-			break
-		}
-	}
-	return updateViews(g)
+	return reloadTasks(g, v)
 }
 
 func searchCursorUp(g *gocui.Gui, v *gocui.View) error {
@@ -597,21 +567,7 @@ func submitSort(g *gocui.Gui, v *gocui.View) error {
 	if err := deleteViewDefault(g, v); err != nil {
 		return err
 	}
-	var selectedID string
-	if len(tasks) > 0 && selectedTask < len(tasks) {
-		selectedID = tasks[selectedTask].ID
-	}
-	if err := loadTasks(); err != nil {
-		return err
-	}
-	// Keep the same task selected after sorting (if it still exists)
-	for i, t := range tasks {
-		if t.ID == selectedID {
-			selectedTask = i
-			break
-		}
-	}
-	return updateViews(g)
+	return reloadTasks(g, v)
 }
 
 func promptMessageBox(g *gocui.Gui, title, message, focusView string, focusCursor bool) error {

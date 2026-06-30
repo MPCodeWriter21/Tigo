@@ -523,6 +523,7 @@ func gitPull(g *gocui.Gui, _ *gocui.View) error {
 		} else {
 			logs.Append(logs.LevelGit, "Pull \x1b[32mcompleted\x1b[39m successfully:\n%s", out)
 		}
+		reloadTasks(g, nil)
 	}()
 	return nil
 }
