@@ -301,6 +301,7 @@ func reloadConfig(g *gocui.Gui, _ *gocui.View) error {
 			"tasks", false)
 	}
 	cfg = newCfg
+	logs.Append(logs.LevelInfo, "Config reloaded.")
 	return reloadTasks(g, nil)
 }
 
