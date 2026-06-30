@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"slices"
 
+	"github.com/MPCodeWriter21/Tigo/internal/cli"
 	"github.com/MPCodeWriter21/Tigo/internal/config"
 	"github.com/MPCodeWriter21/Tigo/internal/ui"
 	"github.com/MPCodeWriter21/Tigo/pkg/db"
@@ -15,6 +17,17 @@ import (
 var version = "dev"
 
 func main() {
+	// Scan os.Args for -c before flag.Parse so everything after -c is treated as the CLI command,
+	// not consumed as unknown flags by the flag package.
+	var cliMode bool
+	var cliArgs []string
+	if idx := slices.Index(os.Args[1:], "-c"); idx >= 0 {
+		cliMode = true
+		pos := idx + 1 // absolute index of "-c" in os.Args
+		cliArgs = os.Args[pos+1:]
+		os.Args = os.Args[:pos]
+	}
+
 	helpFlag := flag.Bool("h", false, "Show the help")
 	helpLongFlag := flag.Bool("help", false, "Show the help")
 	versionFlag := flag.Bool("v", false, "Show the version")
@@ -29,10 +42,15 @@ func main() {
 		fmt.Println("and use that as the root directory of tasks. If `.tigo` does not exist, it will")
 		fmt.Println("use `$HOME/.local/share/tigo`.")
 		fmt.Println()
+		fmt.Println("Flags:")
 		fmt.Println("    -h --help             Show this help and exit")
 		fmt.Println("    -v --version          Show the version and exit")
 		fmt.Println("    --default-config      Print the default configuration and exit")
 		fmt.Println("    --user-config-path    Print the path to the user configuration and exit")
+		fmt.Println("    -c <command> [...]    Run a CLI command (use 'help' for available commands)")
+		fmt.Println()
+		fmt.Println("CLI Commands:")
+		cli.PrintHelp()
 	}
 
 	flag.Parse()
@@ -85,6 +103,18 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error initializing database: %v\n", err)
 		os.Exit(1)
+	}
+
+	if cliMode {
+		if len(cliArgs) == 0 {
+			cli.Run(rootPath, cfg, []string{"help"})
+			return
+		}
+		if err := cli.Run(rootPath, cfg, cliArgs); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			return
+		}
+		return
 	}
 
 	err = ui.Run(rootPath, cfg)

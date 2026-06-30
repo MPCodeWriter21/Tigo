@@ -78,6 +78,7 @@ use `$HOME/.local/share/tigo`.
     -v --version          Show the version and exit
     --default-config      Print the default configuration and exit
     --user-config-path    Print the path to the user configuration and exit
+    -c <command> [...]    Run a CLI command (use 'help' for available commands)
 ```
 
 ### Keybindings (TUI)
@@ -111,6 +112,34 @@ use `$HOME/.local/share/tigo`.
 - `<tab>`: Switch between different views (e.g., task list, task details)
 - `<enter>`: Submit dialogs / Go to the selected task's details
 - `<esc>`: Cancel dialogs / Clear search / Exit task details view
+
+### CLI Commands
+
+Tigo includes a command-line interface (CLI) mode for scripting and quick operations.
+Use the `-c` flag followed by a command:
+
+```text
+tigo -c help                  Show available commands
+tigo -c help <cmd>            Show detailed help for a command
+tigo -c create <title>        Create a new task
+tigo -c list                  List open tasks
+tigo -c show <id>             Show task details
+tigo -c edit <id>             Edit a task
+tigo -c delete <id>           Delete a task
+tigo -c open <id>             Set task status to OPEN
+tigo -c close <id>            Set task status to CLOSED
+tigo -c tags                  Show task counts per tag
+tigo -c top <n>               Show top n tasks by priority
+tigo -c next                  Show the next task due
+tigo -c overdue               Show overdue tasks
+tigo -c search <query>        Search tasks by title/description/tags
+tigo -c stats                 Show task statistics
+```
+
+Flags like `--status`, `--priority`, `--tags`, `--due`, `--description`, `--sort`,
+`--limit`, `--priority-min`, `--priority-max`, and `--tag` are available on
+applicable commands.
+Use `tigo -c help <cmd>` for full usage details.
 
 Task Format
 -----------

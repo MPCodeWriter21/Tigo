@@ -26,6 +26,53 @@ Print the default configuration to stdout and exit.
 .TP
 .B \-\-user-config-path
 Print the path to the user configuration file and exit.
+.TP
+.B \-c <command> [args...]
+Run a CLI command instead of the TUI. See CLI COMMANDS below.
+.SH CLI COMMANDS
+The following commands are available with the \fB\-c\fR flag:
+.TP
+.B help [command]
+Show available commands or detailed help for a specific command.
+.TP
+.B create <title>
+Create a new task. Supports \fB\-\-priority\fR, \fB\-\-tags\fR, \fB\-\-due\fR, \fB\-\-description\fR.
+.TP
+.B list
+List tasks. Supports \fB\-\-status\fR, \fB\-\-tag\fR, \fB\-\-priority-min\fR, \fB\-\-priority-max\fR, \fB\-\-sort\fR, \fB\-\-limit\fR.
+.TP
+.B show <id>
+Show the full details of a task.
+.TP
+.B edit <id>
+Edit a task. Supports \fB\-\-title\fR, \fB\-\-priority\fR, \fB\-\-tags\fR, \fB\-\-due\fR, \fB\-\-description\fR, \fB\-\-status\fR.
+.TP
+.B delete <id>
+Permanently delete a task.
+.TP
+.B open <id>
+Set the task's status to OPEN.
+.TP
+.B close <id>
+Set the task's status to CLOSED.
+.TP
+.B tags
+Show task counts per tag. Supports \fB\-\-status\fR, \fB\-\-sort\fR.
+.TP
+.B top <n>
+Show the top n tasks by priority. Supports \fB\-\-status\fR.
+.TP
+.B next
+Show the next task due. Supports \fB\-\-status\fR.
+.TP
+.B overdue
+Show overdue tasks. Supports \fB\-\-status\fR.
+.TP
+.B search <query>
+Search tasks by title, description, or tags. Supports \fB\-\-status\fR, \fB\-\-limit\fR.
+.TP
+.B stats
+Show task statistics (total, open, closed, overdue).
 .SH CONFIGURATION
 Tigo loads configuration from YAML files with the following precedence
 (highest wins):
