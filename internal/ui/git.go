@@ -21,12 +21,19 @@ const (
 	gitOpPush
 )
 
+type commitFileItem struct {
+	path     string
+	status   string
+	selected bool
+}
+
 var (
 	gitRepo         = false
 	gitDirty        = false
 	gitAhead        = 0
 	gitBehind       = 0
 	gitOpInProgress atomic.Int64
+	commitFiles     []commitFileItem
 )
 
 type sessionChange struct {
@@ -222,6 +229,20 @@ func promptCommit(g *gocui.Gui, v *gocui.View) error {
 
 	g.Cursor = true
 
+	// Parse file list and initialize selection
+	commitFiles = nil
+	if statusOut != "" {
+		for line := range strings.SplitSeq(statusOut, "\n") {
+			filePath := strings.TrimPrefix(strings.TrimSpace(line[2:]), tigoRoot)
+			statusChars := line[:2]
+			commitFiles = append(commitFiles, commitFileItem{
+				path:     filePath,
+				status:   statusChars,
+				selected: true,
+			})
+		}
+	}
+
 	// File list view
 	if v, err := g.SetView("commitFiles", x0, y0, x0+fileListWidth, y0+totalHeight, 0); err != nil {
 		if err != gocui.ErrUnknownView {
@@ -229,26 +250,9 @@ func promptCommit(g *gocui.Gui, v *gocui.View) error {
 		}
 		v.Title = "Files to Commit"
 		v.Wrap = false
-		if statusOut != "" {
-			for line := range strings.SplitSeq(statusOut, "\n") {
-				filePath := strings.TrimSpace(line[2:])
-				statusChars := line[:2]
-				var color string
-				switch {
-				case strings.HasPrefix(statusChars, "?"):
-					color = "\x1b[36m"
-				case strings.HasPrefix(statusChars, "M") || strings.HasSuffix(statusChars, "M"):
-					color = "\x1b[33m"
-				case strings.HasPrefix(statusChars, "A"):
-					color = "\x1b[32m"
-				case strings.HasPrefix(statusChars, "D") || strings.HasSuffix(statusChars, "D"):
-					color = "\x1b[31m"
-				case strings.HasPrefix(statusChars, "R"):
-					color = "\x1b[35m"
-				default:
-					color = "\x1b[37m"
-				}
-				fmt.Fprintf(v, "%s%s\x1b[39m %s\n", color, statusChars, filePath)
+		if len(commitFiles) > 0 {
+			for _, item := range commitFiles {
+				renderCommitFileLine(v, item)
 			}
 		} else {
 			fmt.Fprint(v, "\x1b[33m(empty)\x1b[39m\n")
@@ -285,6 +289,46 @@ func promptCommit(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+func renderCommitFileLine(v *gocui.View, item commitFileItem) {
+	mark := " "
+	if item.selected {
+		mark = "x"
+	}
+	var color string
+	switch {
+	case strings.HasPrefix(item.status, "?"):
+		color = "\x1b[36m"
+	case strings.HasPrefix(item.status, "M") || strings.HasSuffix(item.status, "M"):
+		color = "\x1b[33m"
+	case strings.HasPrefix(item.status, "A"):
+		color = "\x1b[32m"
+	case strings.HasPrefix(item.status, "D") || strings.HasSuffix(item.status, "D"):
+		color = "\x1b[31m"
+	case strings.HasPrefix(item.status, "R"):
+		color = "\x1b[35m"
+	default:
+		color = "\x1b[37m"
+	}
+	fmt.Fprintf(v, "\x1b[37m[%s]\x1b[39m %s%s\x1b[39m %s\n", mark, color, item.status, item.path)
+}
+
+func toggleCommitFile(g *gocui.Gui, v *gocui.View) error {
+	_, cy := v.Cursor()
+	_, oy := v.Origin()
+	index := cy + oy
+	if index >= len(commitFiles) {
+		return nil
+	}
+	commitFiles[index].selected = !commitFiles[index].selected
+	v.Clear()
+	for _, item := range commitFiles {
+		renderCommitFileLine(v, item)
+	}
+	v.SetOrigin(0, oy)
+	v.SetCursor(0, cy)
+	return nil
+}
+
 func submitCommit(g *gocui.Gui, v *gocui.View) error {
 	titleView, err := g.View("commitSubject")
 	if err != nil {
@@ -306,7 +350,21 @@ func submitCommit(g *gocui.Gui, v *gocui.View) error {
 		fullMsg += "\n\n" + description
 	}
 
-	git.CommitAll(tigoRoot, fullMsg)
+	var selectedPaths []string
+	allSelected := true
+	for _, item := range commitFiles {
+		if item.selected {
+			selectedPaths = append(selectedPaths, item.path)
+		} else {
+			allSelected = false
+		}
+	}
+
+	if allSelected {
+		git.CommitAll(tigoRoot, fullMsg)
+	} else {
+		git.CommitFiles(tigoRoot, fullMsg, selectedPaths)
+	}
 
 	clearSessionChanges()
 	updateGitState()
@@ -317,6 +375,7 @@ func submitCommit(g *gocui.Gui, v *gocui.View) error {
 
 func closeCommitDialog(g *gocui.Gui, v *gocui.View) error {
 	g.Cursor = false
+	commitFiles = nil
 	for _, name := range []string{"commitFiles", "commitSubject", "commitBody"} {
 		g.DeleteView(name)
 	}

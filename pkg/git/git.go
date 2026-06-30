@@ -47,6 +47,12 @@ func IsGitRepo(dir string) bool {
 
 // CommitAll stages all changes in rootDir and commits
 func CommitAll(tigoDir, message string) (string, error) {
+	return CommitFiles(tigoDir, message, nil)
+}
+
+// CommitFiles stages and commits the specified files in the tigo directory.
+// If files is nil, all changes in the directory are staged.
+func CommitFiles(tigoDir, message string, files []string) (string, error) {
 	// First check what files are staged to be committed
 	// if there are staged files outside the tasks directory, note them and unstage them
 	// After committing the tasks changes, restage the previously staged files
@@ -63,7 +69,18 @@ func CommitAll(tigoDir, message string) (string, error) {
 		}
 	}
 
-	_, err = RunGitCommand(tigoDir, "add", ".")
+	if files == nil {
+		_, err = RunGitCommand(tigoDir, "add", ".")
+	} else {
+		args := append([]string{"add", "--"}, files...)
+		// This command must be run in the root directory of the git repo to work, otherwise it will not find the files to stage
+		var rootDir string
+		rootDir, err = RunGitCommandQuiet(tigoDir, "rev-parse", "--show-toplevel")
+		if err != nil {
+			return "", err
+		}
+		_, err = RunGitCommand(rootDir, args...)
+	}
 	if err != nil {
 		return "", err
 	}

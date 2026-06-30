@@ -519,6 +519,33 @@ func updateViews(g *gocui.Gui) error {
 		helpView.SetCursor(0, min(cy, helpView.LinesHeight()-2))
 	}
 
+	// commitFiles view
+	commitFilesView, err := g.View("commitFiles")
+	if err == nil {
+		commitFilesView.Highlight = g.CurrentView() == commitFilesView
+		_, commitFilesHeight := commitFilesView.Size()
+
+		_, cy := commitFilesView.Cursor()
+		_, oy := commitFilesView.Origin()
+		cy = max(min(cy, commitFilesView.LinesHeight()-2), 0)
+
+		if cy < 2 && oy > 0 {
+			oy--
+			cy++
+		}
+		if cy > commitFilesHeight-3 {
+			cy--
+			oy++
+		}
+		if cy+oy > commitFilesView.LinesHeight()-2 {
+			oy--
+		}
+		oy = max(oy, 0)
+
+		commitFilesView.SetOrigin(0, oy)
+		commitFilesView.SetCursor(0, cy)
+	}
+
 	return nil
 }
 

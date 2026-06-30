@@ -90,6 +90,7 @@ var bindings []keybinding = []keybinding{
 	{[]string{"commitSubject"}, []any{gocui.KeyEnter}, gocui.ModNone, submitCommit, "Submit the commit message", true},
 	{[]string{"commitBody"}, []any{gocui.KeyEnter}, gocui.ModShift, submitCommit, "Submit the commit message", true},
 	{[]string{"commitFiles"}, []any{gocui.KeyEnter}, gocui.ModNone, submitCommit, "Submit the commit message", true},
+	{[]string{"commitFiles"}, []any{gocui.KeySpace}, gocui.ModNone, toggleCommitFile, "Toggle file selection", true},
 	{[]string{"commitSubject"}, []any{gocui.KeyTab}, gocui.ModNone, setCurrentViewCallback("commitBody"), "Switch to the commit description field", true},
 	{[]string{"commitBody"}, []any{gocui.KeyTab}, gocui.ModNone, setCurrentViewCallbackCursor("commitFiles", false), "Switch to the file list", true},
 	{[]string{"commitFiles"}, []any{gocui.KeyTab}, gocui.ModNone, setCurrentViewCallbackCursor("commitSubject", true), "Switch to the commit message field", true},
