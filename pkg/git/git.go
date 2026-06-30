@@ -182,6 +182,34 @@ func BlameTask(rootDir, taskID string) ([]time.Time, []string, error) {
 	return times, names, nil
 }
 
+// ListLocalBranches returns the list of local branches and the current branch.
+func ListLocalBranches(dir string) ([]string, string, error) {
+	out, err := RunGitCommandQuiet(dir, "branch")
+	if err != nil {
+		return nil, "", err
+	}
+	var branches []string
+	var current string
+	for line := range strings.SplitSeq(out, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "* ") {
+			current = strings.TrimSpace(line[2:])
+			branches = append(branches, current)
+		} else {
+			branches = append(branches, line)
+		}
+	}
+	return branches, current, nil
+}
+
+// SwitchBranch switches to the given branch. Returns the git output.
+func SwitchBranch(dir, branch string) (string, error) {
+	return RunGitCommand(dir, "switch", branch)
+}
+
 // AheadBehind returns the number of commits ahead of and behind the upstream
 // tracking branch. Returns 0, 0 if there is no upstream or on error.
 func AheadBehind(rootDir string) (ahead, behind int) {

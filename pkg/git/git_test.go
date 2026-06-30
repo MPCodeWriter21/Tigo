@@ -481,6 +481,144 @@ func TestAheadBehind_AfterCommit(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// ListLocalBranches
+// ---------------------------------------------------------------------------
+
+func TestListLocalBranches_InitialBranch(t *testing.T) {
+	repo := setupTestRepo(t)
+	writeFile(t, repo, "README.md", "# test")
+	RunGitCommand(repo, "add", ".")
+	RunGitCommand(repo, "commit", "--no-verify", "-m", "initial")
+
+	branches, current, err := ListLocalBranches(repo)
+	if err != nil {
+		t.Fatalf("ListLocalBranches failed: %v", err)
+	}
+	if len(branches) != 1 {
+		t.Fatalf("expected 1 branch, got %d: %v", len(branches), branches)
+	}
+	if branches[0] != "main" {
+		t.Errorf("expected branch 'main', got %q", branches[0])
+	}
+	if current != "main" {
+		t.Errorf("expected current branch 'main', got %q", current)
+	}
+}
+
+func TestListLocalBranches_MultipleBranches(t *testing.T) {
+	repo := setupTestRepo(t)
+
+	// Make an initial commit so we can create branches
+	writeFile(t, repo, "README.md", "# test")
+	RunGitCommand(repo, "add", ".")
+	RunGitCommand(repo, "commit", "--no-verify", "-m", "initial")
+
+	// Create a second branch
+	RunGitCommand(repo, "branch", "develop")
+
+	branches, current, err := ListLocalBranches(repo)
+	if err != nil {
+		t.Fatalf("ListLocalBranches failed: %v", err)
+	}
+	if len(branches) != 2 {
+		t.Fatalf("expected 2 branches, got %d: %v", len(branches), branches)
+	}
+	if current != "main" {
+		t.Errorf("expected current branch 'main', got %q", current)
+	}
+	hasMain := false
+	hasDevelop := false
+	for _, b := range branches {
+		if b == "main" {
+			hasMain = true
+		}
+		if b == "develop" {
+			hasDevelop = true
+		}
+	}
+	if !hasMain {
+		t.Error("expected 'main' in branch list")
+	}
+	if !hasDevelop {
+		t.Error("expected 'develop' in branch list")
+	}
+}
+
+func TestListLocalBranches_AfterSwitch(t *testing.T) {
+	repo := setupTestRepo(t)
+	writeFile(t, repo, "README.md", "# test")
+	RunGitCommand(repo, "add", ".")
+	RunGitCommand(repo, "commit", "--no-verify", "-m", "initial")
+	RunGitCommand(repo, "branch", "feature")
+	RunGitCommand(repo, "switch", "feature")
+
+	branches, current, err := ListLocalBranches(repo)
+	if err != nil {
+		t.Fatalf("ListLocalBranches failed: %v", err)
+	}
+	if current != "feature" {
+		t.Errorf("expected current branch 'feature', got %q", current)
+	}
+	if len(branches) != 2 {
+		t.Fatalf("expected 2 branches, got %d: %v", len(branches), branches)
+	}
+}
+
+func TestListLocalBranches_OutsideRepo(t *testing.T) {
+	dir := t.TempDir()
+	_, _, err := ListLocalBranches(dir)
+	if err == nil {
+		t.Log("ListLocalBranches outside repo should ideally fail")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// SwitchBranch
+// ---------------------------------------------------------------------------
+
+func TestSwitchBranch_ExistingBranch(t *testing.T) {
+	repo := setupTestRepo(t)
+	writeFile(t, repo, "README.md", "# test")
+	RunGitCommand(repo, "add", ".")
+	RunGitCommand(repo, "commit", "--no-verify", "-m", "initial")
+	RunGitCommand(repo, "branch", "other")
+
+	out, err := SwitchBranch(repo, "other")
+	if err != nil {
+		t.Fatalf("SwitchBranch failed: %v", err)
+	}
+	if !strings.Contains(out, "other") {
+		t.Errorf("switch output should mention branch name, got: %s", out)
+	}
+
+	// Verify we're now on the new branch
+	_, current, _ := ListLocalBranches(repo)
+	if current != "other" {
+		t.Errorf("expected current branch 'other', got %q", current)
+	}
+}
+
+func TestSwitchBranch_NonExistentBranch(t *testing.T) {
+	repo := setupTestRepo(t)
+	writeFile(t, repo, "README.md", "# test")
+	RunGitCommand(repo, "add", ".")
+	RunGitCommand(repo, "commit", "--no-verify", "-m", "initial")
+
+	_, err := SwitchBranch(repo, "nonexistent")
+	if err == nil {
+		t.Fatal("SwitchBranch should fail for non-existent branch")
+	}
+}
+
+func TestSwitchBranch_OutsideRepo(t *testing.T) {
+	dir := t.TempDir()
+	_, err := SwitchBranch(dir, "main")
+	if err == nil {
+		t.Log("SwitchBranch outside repo should ideally fail")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Log-based callback checks — verify that RunGitCommand fires a log entry
 // ---------------------------------------------------------------------------
 

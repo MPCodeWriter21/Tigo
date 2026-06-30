@@ -197,9 +197,15 @@ func gitStatusString(g *gocui.Gui) string {
 	sb.WriteString("\x1b[39m ")
 
 	if gitDirty {
-		sb.WriteString("\x1b[33m\u25cf uncommitted\x1b[39m")
+		sb.WriteString("\x1b[33m\u25cf ")
 	} else {
-		sb.WriteString("\x1b[32m\u25cf clean\x1b[39m")
+		sb.WriteString("\x1b[32m\u25cf ")
+	}
+	_, branchName, err := git.ListLocalBranches(tigoRoot)
+	if err == nil {
+		fmt.Fprintf(&sb, "%s\x1b[39m", branchName)
+	} else {
+		sb.WriteString("\x1b[31m<unknown>\x1b[39m")
 	}
 	return sb.String()
 }
@@ -371,6 +377,113 @@ func submitCommit(g *gocui.Gui, v *gocui.View) error {
 
 	closeCommitDialog(g, v)
 	return updateViews(g)
+}
+
+var (
+	branches       []string
+	currentBranch  string
+	selectedBranch int
+)
+
+func promptSwitchBranch(g *gocui.Gui, v *gocui.View) error {
+	if !gitRepo {
+		return promptMessageBox(g, "Not a Git Repo", "\x1b[31mThe current tigo directory is not in a git repository.", "", false)
+	}
+
+	var err error
+	branches, currentBranch, err = git.ListLocalBranches(tigoRoot)
+	if err != nil {
+		return promptMessageBox(g, "Git Error", fmt.Sprintf("\x1b[31mFailed to list branches:\x1b[39m\n%s", err), "", false)
+	}
+
+	selectedBranch = 0
+	for i, b := range branches {
+		if b == currentBranch {
+			selectedBranch = i
+			break
+		}
+	}
+
+	maxX, maxY := g.Size()
+	width := max(maxX/2, 30)
+	height := min(len(branches)+2, maxY/2)
+	x0 := maxX/2 - width/2
+	y0 := maxY/2 - height/2
+
+	if v, err := g.SetView("branches", x0, y0, x0+width, y0+height, 0); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Title = "Switch Branch"
+		v.Highlight = true
+		renderBranches(v)
+		v.SetCursor(0, selectedBranch)
+	}
+	_, err = g.SetCurrentView("branches")
+	return err
+}
+
+func renderBranches(v *gocui.View) {
+	v.Clear()
+	for _, b := range branches {
+		if b == currentBranch {
+			fmt.Fprintf(v, "\x1b[32m* %s\x1b[39m\n", b)
+		} else {
+			fmt.Fprintf(v, "  %s\n", b)
+		}
+	}
+}
+
+func branchesDown(g *gocui.Gui, v *gocui.View) error {
+	if selectedBranch < len(branches)-1 {
+		selectedBranch++
+		renderBranches(v)
+		_, h := v.Size()
+		_, oy := v.Origin()
+		if selectedBranch-oy >= h-1 {
+			v.SetOrigin(0, oy+1)
+		}
+		v.SetCursor(0, selectedBranch-oy)
+	}
+	return nil
+}
+
+func branchesUp(g *gocui.Gui, v *gocui.View) error {
+	if selectedBranch > 0 {
+		selectedBranch--
+		renderBranches(v)
+		_, oy := v.Origin()
+		if selectedBranch < oy {
+			v.SetOrigin(0, oy-1)
+		}
+		v.SetCursor(0, selectedBranch-oy)
+	}
+	return nil
+}
+
+func submitSwitchBranch(g *gocui.Gui, v *gocui.View) error {
+	if selectedBranch < 0 || selectedBranch >= len(branches) {
+		return nil
+	}
+	target := branches[selectedBranch]
+	if target == currentBranch {
+		g.DeleteView("branches")
+		g.SetCurrentView("tasks")
+		return promptMessageBox(g, "Already on Branch", fmt.Sprintf("\x1b[33mAlready on branch \x1b[36m%s\x1b[33m.", target), "", false)
+	}
+
+	out, err := git.SwitchBranch(tigoRoot, target)
+	logs.Append(logs.LevelGit, "Switched to branch \x1b[36m%s\x1b[39m:\n%s", target, out)
+	if err != nil {
+		g.DeleteView("branches")
+		g.SetCurrentView("tasks")
+		return promptMessageBox(g, "Switch Failed", fmt.Sprintf("\x1b[31mFailed to switch to \x1b[36m%s\x1b[31m:\x1b[39m\n%s\n\n%s", target, out, err), "", false)
+	}
+	updateGitState()
+
+	g.DeleteView("branches")
+	g.SetCurrentView("tasks")
+	return reloadTasks(g, v)
 }
 
 func closeCommitDialog(g *gocui.Gui, v *gocui.View) error {

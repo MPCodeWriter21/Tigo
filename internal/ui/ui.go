@@ -281,6 +281,14 @@ func resizeDialogs(g *gocui.Gui, maxX, maxY int) error {
 		g.SetView("messageBox", x0, y0, x0+width, y0+height, 0)
 	}
 
+	if _, err := g.View("branches"); err == nil {
+		width := max(maxX/2, 30)
+		height := min(len(branches)+2, maxY/2)
+		x0 := maxX/2 - width/2
+		y0 := maxY/2 - height/2
+		g.SetView("branches", x0, y0, x0+width, y0+height, 0)
+	}
+
 	if _, err := g.View("autoComplete"); err == nil {
 		acShow()
 	}

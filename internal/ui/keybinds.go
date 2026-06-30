@@ -53,6 +53,7 @@ var bindings []keybinding = []keybinding{
 	{[]string{"tasks", "details", "logs"}, []any{'f'}, gocui.ModNone, gitFetch, "Fetch from remote", true},
 	{[]string{"tasks", "details", "logs"}, []any{'p'}, gocui.ModNone, gitPull, "Pull commits from remote", true},
 	{[]string{"tasks", "details", "logs"}, []any{'P'}, gocui.ModNone, gitPush, "Push commits to remote", true},
+	{[]string{"tasks", "details", "logs"}, []any{'B'}, gocui.ModNone, promptSwitchBranch, "Switch git branch", true},
 	{[]string{"tasks", "details"}, []any{'/'}, gocui.ModNone, promptSearch, "Search tasks", true},
 	{[]string{"tasks", "details"}, []any{'o'}, gocui.ModNone, openSelectedTaskDirectory, "Open the directory of the selected task", true},
 	{[]string{"tasks", "details"}, []any{'O'}, gocui.ModNone, openSelectedTaskFile, "Open the selected task in the default editor", true},
@@ -99,6 +100,24 @@ var bindings []keybinding = []keybinding{
 	{[]string{"commitFiles"}, []any{'g'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return v.SetCursor(0, 0) }, "Scroll to the top", true},
 	{[]string{"commitFiles"}, []any{'G'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { h := v.LinesHeight(); return v.SetCursor(1, h-2) }, "Scroll to the bottom", true},
 	{[]string{"commitSubject", "commitBody", "commitFiles"}, []any{gocui.KeyEsc}, gocui.ModNone, closeCommitDialog, "Close the commit dialog", true},
+
+	{[]string{"branches"}, []any{gocui.KeyEnter}, gocui.ModNone, submitSwitchBranch, "Switch to the selected branch", true},
+	{[]string{"branches"}, []any{gocui.KeyEsc}, gocui.ModNone, deleteViewDefault, "Close the branch switcher", true},
+	{[]string{"branches"}, []any{'j', gocui.KeyArrowDown}, gocui.ModNone, branchesDown, "Select next branch", true},
+	{[]string{"branches"}, []any{'k', gocui.KeyArrowUp}, gocui.ModNone, branchesUp, "Select previous branch", true},
+	{[]string{"branches"}, []any{'g'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		selectedBranch = 0
+		renderBranches(v)
+		v.SetOrigin(0, 0)
+		return v.SetCursor(0, 0)
+	}, "Go to first branch", true},
+	{[]string{"branches"}, []any{'G'}, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		selectedBranch = len(branches) - 1
+		renderBranches(v)
+		_, h := v.Size()
+		v.SetOrigin(0, max(0, selectedBranch-h+1))
+		return v.SetCursor(0, min(selectedBranch, h-1))
+	}, "Go to last branch", true},
 
 	{[]string{""}, []any{gocui.KeyCtrlC, 'q'}, gocui.ModNone, quit, "Quit the application", true},
 }
