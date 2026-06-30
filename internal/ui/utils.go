@@ -325,10 +325,12 @@ func loadTasks() error {
 	}
 
 	tasks = make([]*task.Task, 0, len(taskIDs))
+	allTasksCount = 0
 	// Parse each task and filter based on search query and config settings
 	for _, id := range taskIDs {
 		t, err := task.Parse(id, filepath.Join(tigoRoot, id, "TASK.md"))
 		if err == nil {
+			allTasksCount++
 			// If the search query is a task id, show the task no matter what
 			if utils.IDRegEx.MatchString(searchQuery.value) {
 				idMatched, err := regexp.MatchString("(?i)"+searchQuery.value, t.ID)

@@ -19,6 +19,7 @@ import (
 var (
 	tigoRoot      string
 	tasks         []*task.Task
+	allTasksCount int = 0 // Total number of tasks, including the hidden ones
 	selectedTask  int = 0 // Index of the currently selected task in the tasks slice
 	cfg           *config.TigoConfig
 	searchQuery   searchQueryType
@@ -356,7 +357,7 @@ func updateViews(g *gocui.Gui) error {
 		tasksView.SetCursor(0, selectedTask-oy)
 	} else {
 		tasksView.Highlight = false
-		fmt.Fprintln(tasksView, "\x1b[31mNo tasks found.\x1b[39m")
+		fmt.Fprintf(tasksView, "\x1b[31mNo tasks found. [%d deselected]\x1b[39m\n", allTasksCount)
 		if searchQuery.value != "" {
 			fmt.Fprintf(tasksView, "Search query: \x1b[32m\"%s\"\x1b[39m\n", searchQuery.value)
 		}
