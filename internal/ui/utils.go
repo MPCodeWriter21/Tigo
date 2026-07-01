@@ -438,3 +438,62 @@ func reloadTasks(g *gocui.Gui, _ *gocui.View) error {
 	}
 	return updateViews(g)
 }
+
+func recordHistory(id string) {
+	if taskHistory.pos < len(taskHistory.entries)-1 {
+		taskHistory.entries = taskHistory.entries[:taskHistory.pos+1]
+	}
+	if len(taskHistory.entries) > 0 && taskHistory.entries[taskHistory.pos] == id {
+		return
+	}
+	taskHistory.entries = append(taskHistory.entries, id)
+	if len(taskHistory.entries) > taskHistoryMax {
+		taskHistory.entries = taskHistory.entries[1:]
+	}
+	taskHistory.pos = len(taskHistory.entries) - 1
+}
+
+func setSelectedTask(index int) {
+	if index < 0 || index >= len(tasks) || index == selectedTask {
+		return
+	}
+	recordHistory(tasks[selectedTask].ID)
+	selectedTask = index
+	recordHistory(tasks[selectedTask].ID)
+}
+
+// navigateToHistory navigates to a task ID from history and updates selectedTask.
+func navigateToHistory(g *gocui.Gui, id string) error {
+	for i, t := range tasks {
+		if t.ID == id {
+			selectedTask = i
+			return updateViews(g)
+		}
+	}
+	// Task not in current list, try loading from disk
+	t, err := task.Parse(id, filepath.Join(tigoRoot, id, "TASK.md"))
+	if err != nil {
+		return nil
+	}
+	tasks = append(tasks, t)
+	selectedTask = len(tasks) - 1
+	return updateViews(g)
+}
+
+// goBackInHistory navigates backward in the task jump history.
+func goBackInHistory(g *gocui.Gui, _ *gocui.View) error {
+	if taskHistory.pos <= 0 {
+		return nil
+	}
+	taskHistory.pos--
+	return navigateToHistory(g, taskHistory.entries[taskHistory.pos])
+}
+
+// goForwardInHistory navigates forward in the task jump history.
+func goForwardInHistory(g *gocui.Gui, _ *gocui.View) error {
+	if taskHistory.pos >= len(taskHistory.entries)-1 {
+		return nil
+	}
+	taskHistory.pos++
+	return navigateToHistory(g, taskHistory.entries[taskHistory.pos])
+}

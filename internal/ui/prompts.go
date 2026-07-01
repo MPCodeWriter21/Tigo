@@ -40,7 +40,7 @@ func promptCreateTask(g *gocui.Gui, v *gocui.View) error {
 			// Select the newly created task
 			for i, t := range tasks {
 				if t.ID == newTaskID {
-					selectedTask = i
+					setSelectedTask(i)
 					break
 				}
 			}

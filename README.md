@@ -14,6 +14,8 @@ Features
   auto-filled messages.
 - **Git Blame**: Per-line metadata and description blame via `git blame`,
   accessible with the `b` keybinding from any view.
+- **Jump History**: Every task selection is recorded in a history buffer.
+  Use `[` and `]` to go back and forward through your navigation history.
 - **Hyperlinks**: Task references (`TASK(20260601-123456)`), URLs, file paths,
   and tags are recognized and clickable in the details view.
 - **Relative Dates**: Supports "tomorrow", "next week", "3 days", "2 months",
@@ -100,6 +102,7 @@ use `$HOME/.local/share/tigo`.
 - `P`: Pull commits from the remote
 - `/`: Search tasks by title, description or tags (supports RegEx)
 - `s`: Sort tasks by priority, due date, ID or title
+- `[` / `]`: Go back/forward in task navigation history
 - `y`: Yank (copy) the selected task's content to the clipboard
 - `Y`: Yank the whole current line
 - `o`: Open the tasks containing directory in the file explorer

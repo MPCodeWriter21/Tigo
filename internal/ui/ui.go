@@ -16,6 +16,8 @@ import (
 	"github.com/MPCodeWriter21/Tigo/pkg/utils"
 )
 
+const taskHistoryMax = 256
+
 var (
 	tigoRoot      string
 	tasks         []*task.Task
@@ -25,6 +27,11 @@ var (
 	searchQuery   searchQueryType
 	currentDetail detail
 	startupErr    error // Non-nil if config loading failed on launch
+
+	taskHistory struct {
+		entries []string // stack of task IDs visited
+		pos     int      // current position in history
+	}
 )
 
 type detailType int
@@ -87,6 +94,9 @@ func Run(root string, conf *config.TigoConfig) error {
 
 	if err := loadTasks(); err != nil {
 		return err
+	}
+	if len(taskHistory.entries) == 0 && len(tasks) > 0 {
+		recordHistory(tasks[selectedTask].ID)
 	}
 
 	updateGitState()
@@ -559,14 +569,14 @@ func updateViews(g *gocui.Gui) error {
 
 func tasksDown(g *gocui.Gui, v *gocui.View) error {
 	if selectedTask < len(tasks)-1 {
-		selectedTask++
+		setSelectedTask(selectedTask + 1)
 	}
 	return updateViews(g)
 }
 
 func tasksUp(g *gocui.Gui, v *gocui.View) error {
 	if selectedTask > 0 {
-		selectedTask--
+		setSelectedTask(selectedTask - 1)
 	}
 	return updateViews(g)
 }
@@ -762,7 +772,7 @@ func followDetail(g *gocui.Gui, v *gocui.View) error {
 		taskID := utils.IDRegEx.FindString(currentDetail.value)
 		for i, t := range tasks {
 			if t.ID == taskID {
-				selectedTask = i
+				setSelectedTask(i)
 				return updateViews(g)
 			}
 		}
@@ -771,7 +781,7 @@ func followDetail(g *gocui.Gui, v *gocui.View) error {
 			return promptMessageBox(g, "Task Not Found", fmt.Sprintf("\x1b[31mTask \x1b[34m`%s`\x1b[31m was not found!", taskID), "details", false)
 		}
 		tasks = append(tasks, t)
-		selectedTask = len(tasks) - 1
+		setSelectedTask(len(tasks) - 1)
 		return nil
 	case tagDetail:
 		tag := currentDetail.value

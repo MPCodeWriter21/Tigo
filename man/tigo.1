@@ -73,6 +73,107 @@ Search tasks by title, description, or tags. Supports \fB\-\-status\fR, \fB\-\-l
 .TP
 .B stats
 Show task statistics (total, open, closed, overdue).
+.SH KEYBINDINGS
+The following keybindings are available in the TUI:
+.TP
+.B \fBq\fR, \fBCtrl+C\fR
+Quit Tigo.
+.TP
+.B \fB?\fR
+Show the help dialog.
+.TP
+.B \fBn\fR, \fBa\fR
+Create a new task.
+.TP
+.B \fBe\fR
+Edit the selected task.
+.TP
+.B \fBd\fR
+Delete the selected task.
+.TP
+.B \fBH\fR
+Hide/show CLOSED tasks.
+.TP
+.B \fBj\fR, \fB\edarr\fR
+Cursor down in the task list.
+.TP
+.B \fBk\fR, \fB\uarr\fR
+Cursor up in the task list.
+.TP
+.B \fBh\fR, \fB\larr\fR
+Move to the previous selectable item / focus tasks list.
+.TP
+.B \fBl\fR, \fB\rarr\fR
+Move to the next selectable item / focus details view.
+.TP
+.B \fBg\fR, \fBG\fR
+Jump to the top/bottom.
+.TP
+.B \fB[\fR, \fB]\fR
+Go back/forward in task navigation history (jump list).
+.TP
+.B \fBL\fR
+Focus the logs view.
+.TP
+.B \fBb\fR
+Show blame summary for the selected task or line.
+.TP
+.B \fBc\fR
+Open the commit dialog.
+.TP
+.B \fBf\fR
+Fetch from remote.
+.TP
+.B \fBp\fR
+Pull commits from remote.
+.TP
+.B \fBP\fR
+Push commits to remote.
+.TP
+.B \fBB\fR
+Switch git branch.
+.TP
+.B \fB/\fR
+Search tasks by title, description, or tags (supports RegEx).
+.TP
+.B \fBs\fR
+Sort tasks by priority, due date, ID, or title.
+.TP
+.B \fBy\fR
+Copy the selected task line to the clipboard.
+.TP
+.B \fBY\fR
+Copy the whole current line to the clipboard.
+.TP
+.B \fBo\fR
+Open the task's containing directory in the file explorer.
+.TP
+.B \fBO\fR
+Open the selected task's \fBTASK.md\fR in the default editor.
+.TP
+.B \fBr\fR
+Refresh the task list from disk.
+.TP
+.B \fBAlt+C\fR
+Open the local Tigo config in the default editor.
+.TP
+.B \fBAlt+R\fR
+Reload the Tigo configuration from disk.
+.TP
+.B \fB`\fR
+Show the current Tigo directory.
+.TP
+.B \fBSpace\fR
+Toggle task status (OPEN/CLOSED) / Follow hyperlink.
+.TP
+.B \fBTab\fR
+Switch between views (task list, details, logs).
+.TP
+.B \fBEnter\fR
+Submit dialogs / Go to the selected task's details.
+.TP
+.B \fBEsc\fR
+Cancel dialogs / Clear search / Exit task details view.
 .SH CONFIGURATION
 Tigo loads configuration from YAML files with the following precedence
 (highest wins):
