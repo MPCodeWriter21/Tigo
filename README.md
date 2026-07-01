@@ -3,6 +3,8 @@ Tigo
 
 TODO/Task management program written in Go, featuring a Terminal User Interface (TUI).
 
+https://github.com/user-attachments/assets/a7a52e12-5e93-424e-9e98-2c85e4cd55ed
+
 Features
 --------
 
