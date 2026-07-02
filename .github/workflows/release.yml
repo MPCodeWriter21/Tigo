@@ -48,3 +48,51 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+
+  termux-deb:
+    runs-on: ubuntu-latest
+    needs: goreleaser
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install dpkg
+        run: sudo apt-get update && sudo apt-get install -y dpkg-dev
+
+      - name: Download termux.deb
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ github.ref_name }}" \
+            --pattern "*.termux.deb"
+
+      - name: Convert to aarch64
+        run: |
+          set -e
+          artifact_name=$(find . -maxdepth 1 -name '*.termux.deb' -printf '%f' -quit)
+          stem="${artifact_name%.termux.deb}"
+          out_name=$(echo "$stem" | sed 's/arm64/aarch64/').termux.deb
+          dpkg-deb -R "$artifact_name" ./temp-deb-directory
+          sed -i 's/^Architecture: arm64/Architecture: aarch64/' \
+            ./temp-deb-directory/DEBIAN/control
+          dpkg-deb -b ./temp-deb-directory "$out_name"
+          rm -rf ./temp-deb-directory
+          echo "out_name=$out_name" >> "$GITHUB_ENV"
+
+      - name: Upload converted artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" "${{ env.out_name }}"
+
+      - name: Update checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sum=$(sha256sum "${{ env.out_name }}" | cut -d' ' -f1)
+          gh release download "${{ github.ref_name }}" \
+            --pattern checksums.txt -O checksums.txt 2>/dev/null || true
+          echo "$sum  ${{ env.out_name }}" >> checksums.txt
+          gh release upload "${{ github.ref_name }}" checksums.txt --clobber

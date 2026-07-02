@@ -35,7 +35,7 @@ builds:
 archives:
   - id: default
     name_template: >-
-      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}
+      {{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}
     formats:
       - tar.gz
     format_overrides:
@@ -51,7 +51,7 @@ nfpms:
   - id: packages
     package_name: tigo
     file_name_template: >-
-      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}
+      {{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}
     vendor: Mehrad Pooryoussof
     homepage: https://github.com/MPCodeWriter21/Tigo
     maintainer: Mehrad Pooryoussof <CodeWriter21@gmail.com>
